@@ -1,0 +1,3268 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#04060C">
+<title>MATA — AI untuk Semua</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Syne+Mono&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{
+  box-sizing:border-box;margin:0;padding:0;
+  -webkit-tap-highlight-color:transparent;
+}
+:root{
+  --bg:#04060C;--s1:#07090F;--s2:#0A0E18;--s3:#0F1520;--s4:#141D2C;--rim:#1A2538;
+  --wire:rgba(255,255,255,.05);
+  --u1:#FFB547;--u2:rgba(255,181,71,.12);--u3:rgba(255,181,71,.06);
+  --d1:#00E5C8;--d2:rgba(0,229,200,.12);--d3:rgba(0,229,200,.06);
+  --gold:#F5C518;--fire:#FF4D6D;--sky:#3D9BFF;--lime:#7CFF6B;--violet:#9B7FFF;
+  --tx:#DDE8FF;--dim:rgba(221,232,255,.4);--ghost:rgba(221,232,255,.1);
+  --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);
+}
+
+/* ── BASE: html + body ── */
+html{height:100%;overflow:hidden;background:var(--bg)}
+body{
+  height:100%;overflow:hidden;
+  font-family:'DM Sans',sans-serif;color:var(--tx);
+  background:var(--bg);-webkit-font-smoothing:antialiased;
+  /* CRITICAL: touch-action:auto so taps propagate normally */
+  touch-action:auto;
+  cursor:pointer;
+}
+
+/* ── INTERACTIVE ELEMENTS: always clickable ── */
+button,
+a,
+input,
+select,
+textarea,
+label,
+.mode-card,
+.dt,
+.vote-fab,
+.dc-opt,
+.pcv-btn,
+.pcv-row,
+.mr-btn,
+.cc-del,
+.cc-btns button,
+[role="button"]{
+  /* ensure clicks/taps always fire */
+  cursor:pointer;
+  -webkit-tap-highlight-color:rgba(0,0,0,0);
+  touch-action:manipulation;
+  position:relative; /* establish stacking context so z-index works */
+  z-index:1;
+}
+button:disabled{cursor:default;pointer-events:none}
+
+/* ── SCREENS ── */
+.scr{
+  position:fixed;inset:0;
+  display:none;flex-direction:column;
+  overflow:hidden;
+  /* CRITICAL: pointer-events must pass through to children */
+  pointer-events:none;
+}
+.scr.on{
+  display:flex;
+  pointer-events:auto; /* only active screen receives events */
+}
+
+/* ── SCROLLABLE CONTAINERS ── */
+.scrolly{
+  flex:1;
+  overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  /* CRITICAL: allow touch scroll but also allow taps on children */
+  touch-action:pan-y;
+}
+.scrolly::-webkit-scrollbar,
+.dp::-webkit-scrollbar{display:none}
+
+/* ════════════════════════════════════════
+   MODE SELECTOR SCREEN
+════════════════════════════════════════ */
+#s-mode{
+  background:var(--bg);
+  align-items:flex-start;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+  touch-action:pan-y;
+  padding:calc(var(--st)+32px) 24px calc(40px + var(--sb));
+}
+.ms-bg{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.ms-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(0,229,200,.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,229,200,.03) 1px,transparent 1px);
+  background-size:56px 56px;
+}
+.ms-glow1{position:absolute;top:20%;left:20%;width:300px;height:300px;background:radial-gradient(circle,rgba(0,229,200,.06),transparent 70%);border-radius:50%}
+.ms-glow2{position:absolute;bottom:20%;right:15%;width:250px;height:250px;background:radial-gradient(circle,rgba(255,181,71,.06),transparent 70%);border-radius:50%}
+
+.ms-inner{position:relative;z-index:10;width:100%;max-width:440px;text-align:center;margin:0 auto}
+.ms-logo{
+  display:inline-flex;align-items:center;gap:10px;
+  margin-bottom:32px;
+}
+.ms-logo-mark{
+  width:48px;height:48px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(0,229,200,.2),rgba(61,155,255,.1));
+  border:1px solid rgba(0,229,200,.25);
+  display:flex;align-items:center;justify-content:center;font-size:24px;
+}
+.ms-logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:28px;letter-spacing:.05em}
+.ms-logo-text span{color:var(--d1)}
+
+.ms-title{
+  font-family:'Syne',sans-serif;font-weight:800;
+  font-size:clamp(26px,6vw,40px);line-height:1.05;margin-bottom:10px;
+}
+.ms-sub{font-size:14px;color:var(--dim);line-height:1.75;margin-bottom:40px;max-width:340px;margin-left:auto;margin-right:auto}
+
+/* Mode cards */
+.mode-cards{display:flex;flex-direction:column;gap:14px;width:100%;margin-bottom:24px}
+.mode-card{
+  /* reset button defaults */
+  display:block;width:100%;
+  border-radius:20px;padding:24px;cursor:pointer;
+  transition:all .28s cubic-bezier(.4,0,.2,1);
+  text-align:left;position:relative;overflow:hidden;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+  font-family:inherit;font-size:inherit;color:inherit;
+  border:2px solid transparent;
+  background:transparent; /* will be overridden by mc-user/mc-dev */
+}
+.mode-card:active{transform:scale(.97)}
+.mc-user{
+  background:linear-gradient(135deg,rgba(255,181,71,.1),rgba(255,181,71,.04));
+  border-color:rgba(255,181,71,.2);
+}
+.mc-user:hover,.mc-user:active{border-color:rgba(255,181,71,.5);background:linear-gradient(135deg,rgba(255,181,71,.15),rgba(255,181,71,.06));box-shadow:0 8px 40px rgba(255,181,71,.12)}
+.mc-dev{
+  background:linear-gradient(135deg,rgba(0,229,200,.08),rgba(0,229,200,.03));
+  border-color:rgba(0,229,200,.18);
+}
+.mc-dev:hover,.mc-dev:active{border-color:rgba(0,229,200,.45);background:linear-gradient(135deg,rgba(0,229,200,.14),rgba(0,229,200,.05));box-shadow:0 8px 40px rgba(0,229,200,.1)}
+
+.mc-header{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.mc-icon-wrap{
+  width:52px;height:52px;border-radius:14px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:26px;
+}
+.mc-user .mc-icon-wrap{background:rgba(255,181,71,.15);border:1px solid rgba(255,181,71,.25)}
+.mc-dev .mc-icon-wrap{background:rgba(0,229,200,.12);border:1px solid rgba(0,229,200,.2)}
+.mc-label{font-family:'Syne Mono',monospace;font-size:9px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:4px}
+.mc-user .mc-label{color:var(--u1)}
+.mc-dev .mc-label{color:var(--d1)}
+.mc-name{font-family:'Syne',sans-serif;font-weight:800;font-size:20px}
+.mc-desc{font-size:13px;color:var(--dim);line-height:1.65;margin-bottom:14px}
+.mc-features{display:flex;flex-wrap:wrap;gap:6px}
+.mc-feat{
+  font-family:'Syne Mono',monospace;font-size:9px;letter-spacing:.06em;
+  padding:4px 10px;border-radius:100px;
+}
+.mc-user .mc-feat{background:rgba(255,181,71,.1);color:var(--u1);border:1px solid rgba(255,181,71,.15)}
+.mc-dev .mc-feat{background:rgba(0,229,200,.08);color:var(--d1);border:1px solid rgba(0,229,200,.12)}
+.mc-arrow{position:absolute;bottom:20px;right:20px;font-size:20px;opacity:.4;transition:opacity .2s,transform .2s}
+.mode-card:hover .mc-arrow{opacity:.8;transform:translateX(4px)}
+
+/* ════════════════════════════════════════
+   PERMISSION SCREEN
+════════════════════════════════════════ */
+#s-perm{background:var(--bg);align-items:center;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:calc(var(--st)+32px) 24px calc(40px + var(--sb));text-align:center}
+.pr-icon{font-size:48px;margin-bottom:20px;animation:prPulse 2s ease-in-out infinite}
+@keyframes prPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.pr-title{font-family:'Syne',sans-serif;font-weight:800;font-size:26px;margin-bottom:8px}
+.pr-sub{font-size:14px;color:var(--dim);line-height:1.7;margin-bottom:28px;max-width:320px}
+.pr-card{width:100%;max-width:360px;background:var(--s2);border:1px solid var(--rim);border-radius:18px;overflow:hidden;margin-bottom:14px}
+.pr-card-head{padding:13px 18px;background:var(--s3);border-bottom:1px solid var(--rim);display:flex;align-items:center;gap:9px}
+.pr-led{width:8px;height:8px;border-radius:50%;background:var(--rim)}
+.pr-led.warn{background:var(--gold);animation:blink 1.2s infinite}
+.pr-led.ok{background:var(--lime)}
+.pr-led.err{background:var(--fire)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.pr-head-title{font-weight:700;font-size:14px}
+.pr-card-body{padding:14px 18px;display:flex;flex-direction:column;gap:8px}
+.pr-step{display:flex;gap:12px;padding:10px 13px;border-radius:11px;background:var(--s3);border:1px solid var(--rim);font-size:13px;color:var(--dim);text-align:left}
+.pr-step-num{width:22px;height:22px;border-radius:50%;background:rgba(0,229,200,.1);border:1px solid rgba(0,229,200,.2);display:flex;align-items:center;justify-content:center;font-family:'Syne Mono',monospace;font-size:10px;font-weight:700;color:var(--d1);flex-shrink:0}
+.pr-step strong{color:var(--tx);display:block;margin-bottom:2px}
+.pr-err{width:100%;max-width:360px;background:rgba(255,77,109,.06);border:1px solid rgba(255,77,109,.15);border-radius:12px;padding:12px 14px;font-size:11px;color:var(--dim);text-align:left;display:none;margin-bottom:10px;word-break:break-word;font-family:'Syne Mono',monospace;line-height:1.5}
+.pr-err.show{display:block}
+.pr-btn{width:100%;max-width:360px;padding:17px;border-radius:15px;border:none;font-family:'DM Sans',sans-serif;font-weight:700;font-size:15px;cursor:pointer;transition:all .22s;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:9px;-webkit-tap-highlight-color:transparent;touch-action:manipulation;position:relative;z-index:5}
+.pr-btn:active{transform:scale(.96)}
+.prb-primary{background:var(--d1);color:var(--bg)}
+.prb-secondary{background:var(--s2);color:var(--tx);border:1px solid var(--rim)}
+.prb-warn{background:rgba(245,197,24,.1);color:var(--gold);border:1px solid rgba(245,197,24,.2)}
+.prb-settings{display:none}
+
+/* ════════════════════════════════════════
+   LOADING SCREEN
+════════════════════════════════════════ */
+#s-load{background:var(--bg);align-items:center;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:calc(var(--st)+40px) 28px calc(40px + var(--sb));gap:0}
+.ld-ring-wrap{position:relative;width:72px;height:72px;margin-bottom:24px}
+.ld-ring{position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(0,229,200,.1);animation:spin linear infinite}
+.ld-r1{animation-duration:7s}
+.ld-r2{inset:10px;border-color:rgba(61,155,255,.07);animation-duration:12s;animation-direction:reverse}
+.ld-core{position:absolute;inset:20px;border-radius:50%;background:radial-gradient(circle,rgba(0,229,200,.15),transparent);display:flex;align-items:center;justify-content:center;font-size:20px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ld-title{font-family:'Syne',sans-serif;font-weight:800;font-size:36px;letter-spacing:.06em;margin-bottom:4px}
+.ld-sub{font-family:'Syne Mono',monospace;font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--d1);margin-bottom:32px}
+.ld-bar-wrap{width:100%;max-width:280px;margin-bottom:10px}
+.ld-track{height:3px;background:var(--rim);border-radius:2px;overflow:hidden}
+.ld-fill{height:100%;background:linear-gradient(90deg,var(--d1),var(--sky));border-radius:2px;width:0%;transition:width .35s ease}
+.ld-msg{font-family:'Syne Mono',monospace;font-size:10px;color:var(--dim);margin-top:7px;letter-spacing:.07em;text-align:center}
+.ld-steps{width:100%;max-width:300px;display:flex;flex-direction:column;gap:6px;margin-top:16px}
+.lds{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:9px;background:var(--s2);border:1px solid var(--rim);font-size:12px;color:var(--dim);transition:all .3s}
+.lds.done{color:var(--d1);border-color:rgba(0,229,200,.18);background:rgba(0,229,200,.04)}
+.lds.act{color:var(--tx)}
+.lds-d{width:5px;height:5px;border-radius:50%;background:var(--rim);flex-shrink:0;transition:background .3s}
+.lds.done .lds-d{background:var(--d1)}
+.lds.act .lds-d{background:var(--gold);animation:blink 1s infinite}
+
+/* ════════════════════════════════════════
+   USER (ABK) MODE — Simple & Warm
+════════════════════════════════════════ */
+#s-user{background:#000;padding:0!important}
+#u-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#u-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+
+/* Top HUD - big & accessible */
+#u-hud{
+  position:absolute;top:0;left:0;right:0;
+  padding:calc(var(--st)+16px) 20px 24px;
+  background:linear-gradient(to bottom,rgba(4,6,12,.88),transparent);
+  pointer-events:none;
+}
+#u-obj-wrap{
+  background:rgba(4,6,12,.75);backdrop-filter:blur(14px);
+  border:2px solid rgba(255,181,71,.2);border-radius:18px;padding:14px 18px;
+}
+#u-obj-name{
+  font-family:'Syne',sans-serif;font-weight:800;
+  font-size:clamp(28px,7vw,44px);color:var(--u1);line-height:1;margin-bottom:5px;
+}
+#u-obj-conf{font-size:13px;color:rgba(255,181,71,.7)}
+
+/* Spatial ring for tunanetra */
+#u-spatial{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  pointer-events:none;display:none;
+}
+#u-spatial.show{display:flex;align-items:center;justify-content:center;width:200px;height:200px}
+.us-ring{position:absolute;border-radius:50%;border:1.5px solid rgba(255,181,71,.18);animation:uspulse 2.5s ease-in-out infinite}
+.us-r1{inset:0}.us-r2{inset:-28px;animation-delay:.6s;border-color:rgba(255,181,71,.09)}
+.us-core{font-size:40px;position:relative;z-index:1}
+@keyframes uspulse{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.06);opacity:.9}}
+
+/* Bottom - large touch targets */
+#u-bottom{
+  position:absolute;bottom:0;left:0;right:0;
+  background:linear-gradient(to top,rgba(4,6,12,.97) 70%,transparent);
+  padding:20px 20px calc(20px + var(--sb));
+  z-index:15;pointer-events:auto;
+}
+#u-speak-btn{
+  width:100%;padding:22px;border-radius:20px;
+  background:var(--u1);color:var(--bg);border:none;
+  font-family:'Syne',sans-serif;font-weight:800;font-size:20px;
+  cursor:pointer;transition:all .2s;margin-bottom:12px;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  -webkit-tap-highlight-color:transparent;
+}
+#u-speak-btn:active{transform:scale(.96);box-shadow:0 6px 28px rgba(255,181,71,.3)}
+.u-mode-toggle{
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(255,255,255,.05);border:1px solid var(--rim);
+  border-radius:14px;padding:12px 16px;
+}
+.umt-label{font-size:13px;font-weight:600}
+.umt-sub{font-size:11px;color:var(--dim);margin-top:1px}
+.u-toggle{position:relative;width:46px;height:26px;flex-shrink:0}
+.u-toggle input{opacity:0;width:0;height:0}
+.u-tog-sl{position:absolute;inset:0;border-radius:13px;background:var(--rim);cursor:pointer;transition:background .3s}
+.u-tog-sl::before{content:'';position:absolute;width:20px;height:20px;border-radius:50%;top:3px;left:3px;background:var(--dim);transition:transform .3s,background .3s}
+.u-toggle input:checked+.u-tog-sl{background:rgba(255,181,71,.25);border:1px solid rgba(255,181,71,.35)}
+.u-toggle input:checked+.u-tog-sl::before{transform:translateX(20px);background:var(--u1)}
+
+#u-back-btn{
+  position:absolute;top:calc(var(--st)+14px);right:16px;
+  background:rgba(4,6,12,.7);backdrop-filter:blur(10px);
+  border:1px solid var(--rim);border-radius:100px;
+  padding:7px 14px;font-size:11px;color:var(--dim);cursor:pointer;
+  font-family:'Syne Mono',monospace;letter-spacing:.06em;text-transform:uppercase;
+  pointer-events:auto;z-index:20;
+}
+
+/* ════════════════════════════════════════
+   DEVELOPER MODE — Tabbed Interface
+════════════════════════════════════════ */
+#s-dev{background:var(--bg);padding:0}
+
+/* Dev top bar */
+#dev-topbar{
+  padding:calc(var(--st)+11px) 18px 11px;
+  background:rgba(4,6,12,.94);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--rim);flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  position:relative;z-index:20;pointer-events:auto;
+}
+.dtb-brand{display:flex;align-items:center;gap:9px}
+.dtb-dot{width:8px;height:8px;border-radius:50%;background:var(--d1);animation:blink 2s infinite}
+.dtb-name{font-family:'Syne',sans-serif;font-weight:800;font-size:16px;letter-spacing:.03em}
+.dtb-name span{color:var(--d1)}
+.dtb-mode{font-family:'Syne Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--d1);background:rgba(0,229,200,.08);border:1px solid rgba(0,229,200,.15);border-radius:100px;padding:4px 10px}
+
+/* Dev tabs */
+#dev-tabs{
+  display:flex;background:rgba(4,6,12,.9);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--rim);flex-shrink:0;overflow-x:auto;
+  position:relative;z-index:20;pointer-events:auto;
+}
+#dev-tabs::-webkit-scrollbar{display:none}
+.dt{
+  flex-shrink:0;padding:11px 16px;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  border:none;background:transparent;cursor:pointer;
+  transition:all .18s;-webkit-tap-highlight-color:transparent;
+  border-bottom:2px solid transparent;
+}
+.dt:active{transform:scale(.92)}
+.dt-i{font-size:18px;transition:transform .2s}
+.dt-l{font-family:'Syne Mono',monospace;font-size:7px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);transition:color .2s;white-space:nowrap}
+.dt.on .dt-i{transform:scale(1.1)}
+.dt.on .dt-l{color:var(--d1)}
+.dt.on{border-bottom-color:var(--d1)}
+
+/* Dev pages */
+#dev-content{flex:1;overflow:hidden;position:relative;min-height:0;pointer-events:auto}
+.dp{position:absolute;inset:0;display:none;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:16px;padding-bottom:calc(40px + var(--sb))}
+.dp::-webkit-scrollbar{display:none}
+.dp.on{display:block;animation:fadeUp .22s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── SHARED DEV COMPONENTS ── */
+.ey{font-family:'Syne Mono',monospace;font-size:9px;letter-spacing:.22em;text-transform:uppercase;margin-bottom:6px}
+.ey-d{color:var(--d1)}.ey-g{color:var(--gold)}.ey-f{color:var(--fire)}.ey-s{color:var(--sky)}.ey-v{color:var(--violet)}.ey-l{color:var(--lime)}
+.h2{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,5vw,28px);line-height:1;margin-bottom:6px;letter-spacing:-.01em}
+.h2 em{font-style:normal}
+.sub-txt{font-size:13px;color:var(--dim);line-height:1.7;margin-bottom:14px}
+.card{background:var(--s2);border:1px solid var(--rim);border-radius:16px;overflow:hidden;margin-bottom:12px}
+.card-h{padding:12px 16px;background:var(--s3);border-bottom:1px solid var(--rim);display:flex;align-items:center;gap:10px}
+.ch-ic{font-size:18px;flex-shrink:0}.ch-t{font-weight:700;font-size:13px}.ch-s{font-size:10px;color:var(--dim);margin-top:1px}.ch-r{margin-left:auto;flex-shrink:0}
+.card-b{padding:14px 16px}
+.btn{padding:12px 16px;border-radius:11px;border:none;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;gap:7px;-webkit-tap-highlight-color:transparent}
+.btn:active{transform:scale(.93)}
+.btn-d{background:var(--d1);color:var(--bg)}
+.btn-g{background:var(--gold);color:var(--bg)}
+.btn-ghost{background:var(--s3);color:var(--tx);border:1px solid var(--rim)}
+.btn-fire{background:rgba(255,77,109,.1);color:var(--fire);border:1px solid rgba(255,77,109,.18)}
+.btn-lime{background:rgba(124,255,107,.09);color:var(--lime);border:1px solid rgba(124,255,107,.16)}
+.btn-full{width:100%;justify-content:center}
+.inp{width:100%;background:var(--s3);border:1px solid var(--rim);border-radius:11px;color:var(--tx);font-family:'DM Sans',sans-serif;font-size:13px;padding:12px 13px;outline:none;transition:border-color .2s;-webkit-appearance:none}
+.inp:focus{border-color:var(--d1)}
+.inp::placeholder{color:rgba(221,232,255,.18)}
+.inp-w{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.inp-lbl{font-size:11px;color:var(--dim);font-weight:500}
+.tag{font-family:'Syne Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:100px;display:inline-flex;align-items:center;gap:4px}
+.tag-d{background:rgba(0,229,200,.08);color:var(--d1);border:1px solid rgba(0,229,200,.15)}
+.tag-g{background:rgba(245,197,24,.08);color:var(--gold);border:1px solid rgba(245,197,24,.14)}
+.tag-f{background:rgba(255,77,109,.08);color:var(--fire);border:1px solid rgba(255,77,109,.14)}
+.tag-l{background:rgba(124,255,107,.07);color:var(--lime);border:1px solid rgba(124,255,107,.13)}
+.tag-dim{background:var(--s3);color:var(--dim);border:1px solid var(--rim)}
+
+/* ════════════════════════════════════════
+   DEV PAGE 0 — AR LIVE (with vote buttons)
+════════════════════════════════════════ */
+#dp-ar{padding:0!important;background:#000}
+#d-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#d-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+
+/* Dev HUD top */
+#d-hud-top{
+  position:absolute;top:0;left:0;right:0;
+  padding:calc(var(--st)+10px) 14px 16px;
+  background:linear-gradient(to bottom,rgba(4,6,12,.88),transparent);
+  display:flex;justify-content:space-between;align-items:flex-start;
+  z-index:10;pointer-events:none;gap:8px;
+}
+.d-chip{background:rgba(4,6,12,.78);backdrop-filter:blur(14px);border:1px solid var(--rim);border-radius:12px;padding:9px 12px;pointer-events:all}
+.dc-lbl{font-family:'Syne Mono',monospace;font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:4px}
+.dc-val{font-family:'Syne',sans-serif;font-weight:800;font-size:15px;line-height:1.1;transition:color .25s}
+.dc-sub{font-size:10px;color:var(--dim);margin-top:2px}
+
+/* Object count badge */
+#d-cnt{
+  position:absolute;top:calc(var(--st)+10px);left:50%;transform:translateX(-50%);
+  background:rgba(4,6,12,.78);backdrop-filter:blur(14px);
+  border:1px solid var(--rim);border-radius:100px;
+  padding:5px 14px;z-index:10;pointer-events:none;
+  font-family:'Syne Mono',monospace;font-size:9px;color:var(--dim);white-space:nowrap;
+}
+#d-cnt b{color:var(--d1)}
+
+/* VOTE BUTTONS — overlaid on camera */
+#vote-overlay{
+  position:absolute;bottom:130px;left:0;right:0;
+  display:flex;gap:12px;padding:0 16px;
+  z-index:20;pointer-events:auto;
+}
+.vote-fab{
+  flex:1;padding:16px 10px;border-radius:16px;border:2px solid transparent;
+  cursor:pointer;transition:all .2s;display:flex;flex-direction:column;
+  align-items:center;gap:5px;
+  backdrop-filter:blur(14px);
+  -webkit-tap-highlight-color:transparent;
+}
+.vote-fab:active{transform:scale(.93)}
+.vf-yes{
+  background:rgba(124,255,107,.1);border-color:rgba(124,255,107,.25);
+}
+.vf-yes:active,.vf-yes.flash{background:rgba(124,255,107,.22);border-color:var(--lime);box-shadow:0 4px 20px rgba(124,255,107,.2)}
+.vf-no{
+  background:rgba(255,77,109,.1);border-color:rgba(255,77,109,.22);
+}
+.vf-no:active,.vf-no.flash{background:rgba(255,77,109,.2);border-color:var(--fire);box-shadow:0 4px 20px rgba(255,77,109,.15)}
+.vf-icon{font-size:26px;transition:transform .18s}
+.vote-fab:active .vf-icon{transform:scale(1.25)}
+.vf-lbl{font-weight:700;font-size:13px}
+.vf-yes .vf-lbl{color:var(--lime)}
+.vf-no .vf-lbl{color:var(--fire)}
+.vf-sub{font-size:9px;color:var(--dim);text-align:center;font-family:'Syne Mono',monospace;letter-spacing:.04em}
+
+/* Vote feedback popup */
+#vote-feedback{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:30;pointer-events:none;display:none;
+  font-family:'Syne',sans-serif;font-weight:800;font-size:48px;
+  animation:vfPop .6s ease forwards;
+}
+@keyframes vfPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}40%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}70%{transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(.9) translateY(-40px)}}
+
+/* Correction panel (dev only) */
+#d-correction{
+  position:absolute;bottom:0;left:0;right:0;
+  background:rgba(4,6,12,.98);backdrop-filter:blur(20px);
+  border-top:1px solid var(--rim);border-radius:24px 24px 0 0;
+  padding:20px 18px calc(20px + var(--sb));
+  z-index:50;display:none;pointer-events:auto;
+  animation:slideUp .3s ease;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+#d-correction.show{display:block}
+.dc-title{font-weight:700;font-size:15px;color:var(--fire);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.dc-q{font-size:12px;color:var(--dim);margin-bottom:12px}
+.dc-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.dc-opt{
+  display:flex;align-items:center;gap:9px;
+  padding:11px 12px;border-radius:12px;
+  background:var(--s3);border:1.5px solid var(--rim);
+  cursor:pointer;font-size:13px;transition:all .18s;
+  -webkit-tap-highlight-color:transparent;
+}
+.dc-opt:active{transform:scale(.96)}
+.dc-opt.sel{border-color:var(--fire);background:rgba(255,77,109,.08)}
+.dc-opt-ic{font-size:20px;flex-shrink:0}
+.dc-opt-ck{width:16px;height:16px;border-radius:5px;border:1px solid var(--rim);margin-left:auto;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;transition:all .18s;flex-shrink:0}
+.dc-opt.sel .dc-opt-ck{background:var(--fire);border-color:var(--fire);color:#fff}
+
+/* Dev AR bottom */
+#d-bottom{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:12px 14px calc(12px + var(--sb));
+  background:linear-gradient(to top,rgba(4,6,12,.97) 75%,transparent);
+  z-index:10;
+}
+#d-det-name{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(22px,5vw,32px);line-height:1;margin-bottom:5px;transition:color .25s}
+.d-det-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.d-conf-bar{width:64px;height:3px;background:var(--rim);border-radius:2px;overflow:hidden;flex-shrink:0}
+.d-conf-fill{height:100%;border-radius:2px;background:var(--d1);transition:width .35s,background .25s}
+#d-det-pos{font-family:'Syne Mono',monospace;font-size:9px;background:rgba(0,229,200,.07);color:var(--d1);border:1px solid rgba(0,229,200,.13);border-radius:100px;padding:3px 9px;display:none}
+.d-act-row{display:flex;gap:8px}
+.dab{padding:11px 13px;border-radius:100px;border:none;font-family:'DM Sans',sans-serif;font-weight:600;font-size:12px;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:6px;-webkit-tap-highlight-color:transparent}
+.dab:active{transform:scale(.92)}
+.dab-speak{background:var(--gold);color:var(--bg);flex:1}
+.dab-mode{width:44px;height:44px;border-radius:50%;background:rgba(221,232,255,.07);border:1px solid var(--rim);font-size:16px}
+.dab-mode.on{background:rgba(0,229,200,.1);border-color:rgba(0,229,200,.25)}
+.dab-ic{width:44px;height:44px;border-radius:50%;background:rgba(221,232,255,.07);border:1px solid var(--rim);font-size:16px}
+
+/* ════════════════════════════════════════
+   DEV PAGE 1 — TRAINING STUDIO
+════════════════════════════════════════ */
+.class-card{
+  background:var(--s2);border:1px solid var(--rim);border-radius:16px;
+  overflow:hidden;margin-bottom:12px;
+}
+.cc-head{
+  padding:12px 16px;background:var(--s3);border-bottom:1px solid var(--rim);
+  display:flex;align-items:center;gap:10px;
+}
+.cc-color{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.cc-name-inp{
+  flex:1;background:transparent;border:none;color:var(--tx);
+  font-family:'Syne',sans-serif;font-weight:700;font-size:14px;outline:none;
+  min-width:0;
+}
+.cc-name-inp::placeholder{color:rgba(221,232,255,.25)}
+.cc-count{font-family:'Syne Mono',monospace;font-size:10px;color:var(--d1)}
+.cc-del{background:transparent;border:none;color:var(--dim);font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px;transition:color .18s}
+.cc-del:active{color:var(--fire)}
+.cc-body{padding:12px 14px}
+.cc-samples{display:flex;flex-wrap:wrap;gap:7px;min-height:52px;margin-bottom:10px;align-items:flex-start}
+.sample-thumb{
+  width:52px;height:52px;border-radius:10px;object-fit:cover;
+  border:1px solid var(--rim);animation:thumbIn .3s ease both;cursor:pointer;
+  position:relative;flex-shrink:0;
+}
+@keyframes thumbIn{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+.sample-placeholder{
+  width:52px;height:52px;border-radius:10px;
+  background:var(--s3);border:1.5px dashed var(--rim);
+  display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--dim);
+}
+.cc-btns{display:flex;gap:8px;flex-wrap:wrap}
+/* Inline webcam for class */
+.cc-webcam{
+  width:100%;border-radius:12px;overflow:hidden;
+  background:#000;position:relative;margin-bottom:10px;display:none;
+}
+.cc-webcam.show{display:block}
+.ccw-video{width:100%;height:140px;object-fit:cover;display:block}
+.ccw-footer{padding:8px 10px;background:rgba(4,6,12,.85);display:flex;align-items:center;gap:8px}
+.ccw-det{flex:1;font-size:12px;color:var(--dim)}
+
+/* Training progress */
+#train-progress{
+  background:var(--s2);border:1px solid var(--rim);border-radius:14px;
+  padding:16px;margin-bottom:12px;display:none;
+}
+#train-progress.show{display:block;animation:fadeUp .3s ease}
+.tp-label{font-family:'Syne Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:7px}
+.tp-spinner{width:10px;height:10px;border-radius:50%;border:2px solid rgba(245,197,24,.2);border-top-color:var(--gold);animation:spin .7s linear infinite}
+.tp-bar-bg{height:5px;background:var(--s3);border-radius:3px;overflow:hidden;margin-bottom:7px}
+.tp-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--gold),var(--lime));width:0%;transition:width .18s}
+.tp-step{font-size:12px;color:var(--dim)}
+#train-result{
+  background:rgba(124,255,107,.05);border:1px solid rgba(124,255,107,.15);
+  border-radius:14px;padding:14px 16px;margin-bottom:12px;display:none;
+}
+#train-result.show{display:block;animation:fadeUp .3s ease}
+.tr-acc{font-family:'Syne',sans-serif;font-weight:800;font-size:32px;color:var(--lime);margin-bottom:4px}
+.tr-desc{font-size:12px;color:var(--dim);line-height:1.6}
+
+/* ════════════════════════════════════════
+   DEV PAGE 2 — MODEL MANAGER
+════════════════════════════════════════ */
+.model-row{
+  background:var(--s2);border:1px solid var(--rim);border-radius:14px;
+  padding:13px 15px;display:flex;align-items:center;gap:11px;
+  margin-bottom:10px;transition:border-color .25s;
+}
+.model-row.active-m{border-color:rgba(0,229,200,.3);background:rgba(0,229,200,.03)}
+.mr-num{width:28px;height:28px;border-radius:8px;background:var(--s3);border:1px solid var(--rim);display:flex;align-items:center;justify-content:center;font-family:'Syne Mono',monospace;font-size:11px;font-weight:700;color:var(--d1);flex-shrink:0}
+.model-row.active-m .mr-num{background:rgba(0,229,200,.1);border-color:rgba(0,229,200,.25)}
+.mr-info{flex:1;min-width:0}
+.mr-name{font-weight:700;font-size:13px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mr-meta{font-size:10px;color:var(--dim)}
+.mr-score{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;flex-shrink:0}
+.mr-btns{display:flex;gap:5px;flex-shrink:0}
+.mr-btn{width:30px;height:30px;border-radius:8px;border:none;background:var(--s3);color:var(--dim);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s}
+.mr-btn:active{transform:scale(.88)}
+.mr-btn.use:active{background:rgba(0,229,200,.12);color:var(--d1)}
+.mr-btn.del:active{background:rgba(255,77,109,.1);color:var(--fire)}
+
+/* URL validator */
+.url-val-box{background:var(--s3);border:1px solid var(--rim);border-radius:11px;padding:12px 14px;margin-bottom:12px;min-height:48px;font-size:12px;line-height:1.6;transition:all .25s}
+.uvb-spin{display:flex;align-items:center;gap:8px;color:var(--dim)}
+.uvb-spinner{width:14px;height:14px;border-radius:50%;border:2px solid var(--rim);border-top-color:var(--d1);animation:spin .7s linear infinite;flex-shrink:0}
+.uvb-ok{color:var(--lime)}
+.uvb-err{color:var(--fire)}
+.class-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.cls-chip{background:var(--s2);border:1px solid var(--rim);border-radius:100px;padding:3px 9px;font-size:10px;color:var(--dim);font-family:'Syne Mono',monospace}
+
+/* ════════════════════════════════════════
+   DEV PAGE 3 — EVALUATION & VOTE LOG
+════════════════════════════════════════ */
+.sess-bar{
+  background:var(--s2);border:1px solid var(--rim);border-radius:14px;
+  padding:14px 16px;margin-bottom:12px;
+}
+.sess-acc{font-family:'Syne',sans-serif;font-weight:800;font-size:36px;line-height:1;margin-bottom:3px}
+.grade-strip{display:flex;gap:0;border-radius:7px;overflow:hidden;margin-top:8px}
+.gs-item{flex:1;padding:5px 4px;text-align:center;font-family:'Syne Mono',monospace;font-size:8px;font-weight:700}
+.gs-a{background:rgba(124,255,107,.12);color:var(--lime)}
+.gs-b{background:rgba(0,229,200,.1);color:var(--d1)}
+.gs-c{background:rgba(245,197,24,.1);color:var(--gold)}
+.gs-d{background:rgba(255,77,109,.1);color:var(--fire)}
+.vote-log-item{
+  display:flex;align-items:center;gap:10px;
+  background:var(--s2);border:1px solid var(--rim);
+  border-radius:11px;padding:10px 13px;flex-shrink:0;
+  animation:fadeUp .2s ease;
+}
+.vli-res{font-size:16px;flex-shrink:0}
+.vli-info{flex:1}
+.vli-name{font-size:12px;font-weight:600;margin-bottom:1px}
+.vli-meta{font-size:10px;color:var(--dim)}
+.vli-corr{font-size:10px;color:var(--gold);font-style:italic;flex-shrink:0}
+.vli-time{font-family:'Syne Mono',monospace;font-size:9px;color:var(--dim);flex-shrink:0}
+/* Per-class vote row */
+/* Per-class vote grid: 2 columns for many items */
+#pcv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:360px){#pcv-grid{grid-template-columns:1fr}}
+.pcv-row{background:var(--s2);border:1px solid var(--rim);border-radius:13px;padding:11px 12px;transition:border-color .25s}
+.pcv-row.bad{border-color:rgba(255,77,109,.25)}.pcv-row.good{border-color:rgba(124,255,107,.2)}
+.pcv-top{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.pcv-prog{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.pcv-track{flex:1;height:4px;background:var(--s3);border-radius:2px;overflow:hidden}
+.pcv-fill{height:100%;border-radius:2px;transition:width .6s}
+.pcv-pct{font-family:'Syne Mono',monospace;font-size:10px;color:var(--dim);flex-shrink:0;width:28px;text-align:right}
+.pcv-btns{display:flex;gap:5px}
+.pcv-btn{flex:1;padding:6px 2px;border-radius:8px;font-size:9px;font-weight:700;cursor:pointer;border:none;transition:all .18s;-webkit-tap-highlight-color:transparent;letter-spacing:-.01em}
+.pcv-btn:active{transform:scale(.92)}
+.pcvb-y{background:rgba(124,255,107,.07);color:var(--lime);border:1px solid rgba(124,255,107,.15)}
+.pcvb-y.act{background:rgba(124,255,107,.16);border-color:var(--lime)}
+.pcvb-p{background:rgba(245,197,24,.07);color:var(--gold);border:1px solid rgba(245,197,24,.13)}
+.pcvb-p.act{background:rgba(245,197,24,.15);border-color:var(--gold)}
+.pcvb-n{background:rgba(255,77,109,.07);color:var(--fire);border:1px solid rgba(255,77,109,.13)}
+.pcvb-n.act{background:rgba(255,77,109,.15);border-color:var(--fire)}
+
+/* ── TOAST ── */
+#toast{position:fixed;top:calc(var(--st)+62px);left:14px;right:14px;z-index:10000;pointer-events:none;background:var(--s2);border:1px solid var(--rim);border-radius:13px;padding:11px 15px;font-size:13px;transform:translateY(-10px);opacity:0;transition:all .25s cubic-bezier(.4,0,.2,1);pointer-events:none;display:flex;align-items:center;gap:9px}
+#toast.on{transform:translateY(0);opacity:1}
+#ti{font-size:19px;flex-shrink:0}
+
+/* ════════════════════════════════════════
+   TEACH AI PANEL — slides up from bottom
+   over the camera in AR Live dev mode
+════════════════════════════════════════ */
+#teach-panel{
+  position:absolute;bottom:0;left:0;right:0;
+  z-index:60;
+  background:rgba(4,6,12,.97);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border-top:1px solid var(--rim);
+  border-radius:22px 22px 0 0;
+  padding:0 0 calc(16px + var(--sb));
+  pointer-events:auto;
+  display:none;
+  animation:slideUp .28s cubic-bezier(.4,0,.2,1);
+}
+#teach-panel.show{display:block}
+
+.tp-handle{
+  width:36px;height:4px;border-radius:2px;
+  background:var(--rim);margin:12px auto 16px;
+}
+.tp-title{
+  font-family:'Syne',sans-serif;font-weight:800;
+  font-size:18px;padding:0 18px;margin-bottom:4px;
+  color:var(--d1);
+}
+.tp-sub{
+  font-size:12px;color:var(--dim);padding:0 18px;
+  margin-bottom:14px;line-height:1.5;
+}
+
+/* Camera preview inside teach panel */
+.tp-cam-strip{
+  display:flex;gap:8px;
+  padding:0 18px;margin-bottom:12px;
+  overflow-x:auto;-webkit-overflow-scrolling:touch;
+}
+.tp-cam-strip::-webkit-scrollbar{display:none}
+
+.tp-live-thumb{
+  position:relative;flex-shrink:0;
+  width:72px;height:72px;border-radius:12px;
+  background:var(--s3);border:1.5px dashed var(--rim);
+  overflow:hidden;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.tp-live-video{
+  width:100%;height:100%;object-fit:cover;display:block;
+}
+.tp-live-overlay{
+  position:absolute;inset:0;
+  background:rgba(0,229,200,.12);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;
+}
+
+/* Captured sample thumbnails */
+.tp-sample{
+  position:relative;flex-shrink:0;
+  width:72px;height:72px;border-radius:12px;
+  overflow:hidden;border:1.5px solid rgba(0,229,200,.25);
+}
+.tp-sample img{width:100%;height:100%;object-fit:cover;display:block}
+.tp-sample-del{
+  position:absolute;top:3px;right:3px;
+  width:18px;height:18px;border-radius:50%;
+  background:rgba(255,77,109,.85);border:none;
+  color:#fff;font-size:10px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  z-index:2;font-weight:700;
+}
+.tp-sample-count{
+  position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
+  background:rgba(0,229,200,.85);border-radius:100px;
+  font-family:'Syne Mono',monospace;font-size:8px;font-weight:700;
+  color:var(--bg);padding:1px 6px;white-space:nowrap;
+}
+
+/* Object name input */
+.tp-input-row{
+  display:flex;align-items:center;gap:8px;
+  padding:0 18px;margin-bottom:10px;
+}
+.tp-obj-input{
+  flex:1;background:var(--s3);border:2px solid var(--rim);
+  border-radius:12px;color:var(--tx);
+  font-family:'Syne',sans-serif;font-weight:700;font-size:16px;
+  padding:12px 14px;outline:none;transition:border-color .2s;
+  -webkit-appearance:none;
+}
+.tp-obj-input:focus{border-color:var(--d1)}
+.tp-obj-input::placeholder{color:rgba(221,232,255,.2);font-weight:400;font-size:14px}
+
+/* Quick suggestion chips */
+.tp-suggestions{
+  display:flex;gap:6px;flex-wrap:wrap;
+  padding:0 18px;margin-bottom:12px;
+}
+.tp-sug{
+  background:var(--s3);border:1px solid var(--rim);
+  border-radius:100px;padding:5px 12px;
+  font-size:12px;color:var(--dim);cursor:pointer;
+  transition:all .18s;touch-action:manipulation;
+}
+.tp-sug:active{background:rgba(0,229,200,.1);border-color:rgba(0,229,200,.3);color:var(--d1)}
+
+/* Action buttons */
+.tp-actions{
+  display:flex;gap:8px;padding:0 18px;
+}
+.tp-btn-capture{
+  flex:1;padding:14px;border-radius:13px;border:none;
+  background:var(--d1);color:var(--bg);
+  font-family:'Syne',sans-serif;font-weight:800;font-size:14px;
+  cursor:pointer;touch-action:manipulation;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  transition:all .18s;
+}
+.tp-btn-capture:active{transform:scale(.95)}
+.tp-btn-hold{
+  flex:1;padding:14px;border-radius:13px;
+  background:rgba(0,229,200,.1);color:var(--d1);
+  border:1.5px solid rgba(0,229,200,.25);
+  font-family:'Syne',sans-serif;font-weight:700;font-size:13px;
+  cursor:pointer;touch-action:manipulation;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:all .18s;
+}
+.tp-btn-hold.active-hold{background:rgba(0,229,200,.2);border-color:var(--d1)}
+.tp-btn-close{
+  padding:14px 14px;border-radius:13px;
+  background:var(--s3);color:var(--dim);
+  border:1px solid var(--rim);
+  font-size:18px;cursor:pointer;touch-action:manipulation;
+}
+
+/* Stats bar inside teach panel */
+.tp-stats{
+  display:flex;gap:8px;padding:0 18px;margin-bottom:10px;
+}
+.tp-stat{
+  flex:1;background:var(--s3);border:1px solid var(--rim);
+  border-radius:10px;padding:8px 10px;text-align:center;
+}
+.tp-stat-val{
+  font-family:'Syne',sans-serif;font-weight:800;font-size:18px;
+  color:var(--d1);line-height:1;
+}
+.tp-stat-lbl{font-size:9px;color:var(--dim);margin-top:2px}
+
+/* Teach button — always visible on AR dev HUD */
+#teach-trigger{
+  position:absolute;
+  top:calc(var(--st)+10px);
+  left:50%;transform:translateX(-50%);
+  background:rgba(245,197,24,.15);
+  backdrop-filter:blur(12px);
+  border:1.5px solid rgba(245,197,24,.4);
+  border-radius:100px;
+  padding:7px 18px;
+  font-family:'Syne Mono',monospace;font-size:10px;
+  letter-spacing:.1em;text-transform:uppercase;
+  color:var(--gold);cursor:pointer;
+  z-index:15;pointer-events:auto;
+  touch-action:manipulation;
+  white-space:nowrap;
+  transition:all .2s;
+}
+#teach-trigger:active{transform:translateX(-50%) scale(.95)}
+#teach-trigger.has-data{
+  background:rgba(0,229,200,.12);
+  border-color:rgba(0,229,200,.35);
+  color:var(--d1);
+}
+
+/* "Needs more data" indicator on bounding box */
+.teach-nudge{
+  position:absolute;
+  background:rgba(245,197,24,.9);
+  border-radius:100px;padding:3px 10px;
+  font-family:'Syne Mono',monospace;font-size:9px;
+  font-weight:700;color:var(--bg);
+  pointer-events:none;white-space:nowrap;
+  animation:nudgePop .3s ease;
+}
+@keyframes nudgePop{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+</style>
+</head>
+<body>
+
+<div id="toast"><div id="ti"></div><div id="tm"></div></div>
+
+<!-- ══════════════════════════════════════════
+     MODE SELECTOR
+══════════════════════════════════════════ -->
+<div class="scr on" id="s-mode">
+  <div class="ms-bg"><div class="ms-grid"></div><div class="ms-glow1"></div><div class="ms-glow2"></div></div>
+  <div class="ms-inner">
+    <div class="ms-logo">
+      <div class="ms-logo-mark">👁️</div>
+      <div class="ms-logo-text">M<span>A</span>TA</div>
+    </div>
+    <h1 class="ms-title">Pilih Mode<br>Penggunaan</h1>
+    <p class="ms-sub">MATA hadir untuk semua — tunanetra yang ingin mandiri, dan siswa yang ingin membangun AI yang berarti.</p>
+    <div class="mode-cards">
+      <!-- USER / ABK -->
+      <button class="mode-card mc-user" onclick="enterUserMode()" type="button">
+        <div class="mc-header">
+          <div class="mc-icon-wrap">♿</div>
+          <div>
+            <div class="mc-label">Pengguna</div>
+            <div class="mc-name">Mode Tunanetra</div>
+          </div>
+        </div>
+        <div class="mc-desc">Kenali objek di sekitarmu menggunakan kamera dan panduan suara. Antarmuka sederhana, teks besar, dan respons suara otomatis.</div>
+        <div class="mc-features">
+          <div class="mc-feat">🔊 Suara Otomatis</div>
+          <div class="mc-feat">👁️ AR Real-time</div>
+          <div class="mc-feat">📍 Info Posisi</div>
+          <div class="mc-feat">🎯 Teks Besar</div>
+        </div>
+        <div class="mc-arrow">→</div>
+      </button>
+      <!-- DEVELOPER -->
+      <button class="mode-card mc-dev" onclick="enterDevMode()" type="button">
+        <div class="mc-header">
+          <div class="mc-icon-wrap">🛠️</div>
+          <div>
+            <div class="mc-label">Pengembang · Siswa</div>
+            <div class="mc-name">Mode Developer</div>
+          </div>
+        </div>
+        <div class="mc-desc">Latih model AI langsung dari browser, evaluasi akurasi dengan vote system, dan kelola database model. Platform lengkap untuk membangun MATA.</div>
+        <div class="mc-features">
+          <div class="mc-feat">🧠 In-Browser Training</div>
+          <div class="mc-feat">✅❌ Vote Langsung</div>
+          <div class="mc-feat">📊 Database Model</div>
+          <div class="mc-feat">🔗 Import TM</div>
+        </div>
+        <div class="mc-arrow">→</div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PERMISSION SCREEN
+══════════════════════════════════════════ -->
+<div class="scr" id="s-perm">
+  <div class="pr-icon" id="pr-icon">📷</div>
+  <div class="pr-title" id="pr-title">MATA perlu kamera</div>
+  <p class="pr-sub" id="pr-sub">Untuk mendeteksi objek secara real-time, MATA memerlukan akses ke kamera perangkatmu.</p>
+  <div class="pr-card" id="pr-card">
+    <div class="pr-card-head">
+      <div class="pr-led warn" id="pr-led"></div>
+      <div class="pr-head-title" id="pr-head-title">Menunggu izin...</div>
+    </div>
+    <div class="pr-card-body" id="pr-card-body">
+      <div class="pr-step"><div class="pr-step-num">1</div><div><strong>Tap "Izinkan Kamera"</strong>Pop-up izin akan muncul dari browser</div></div>
+      <div class="pr-step"><div class="pr-step-num">2</div><div><strong>Pilih "Izinkan" / "Allow"</strong>Jangan pilih Blokir</div></div>
+      <div class="pr-step"><div class="pr-step-num">💡</div><div><strong>Tidak ada pop-up?</strong>Tap ikon 🔒 di address bar → Izin Situs → Kamera</div></div>
+    </div>
+  </div>
+  <div class="pr-err" id="pr-err"></div>
+  <button class="pr-btn prb-primary" id="pr-main-btn" onclick="requestPermission()">📷 Izinkan Kamera</button>
+  <button class="pr-btn prb-warn prb-settings" id="pr-set-btn" onclick="showPermSettings()">⚙️ Cara Izinkan di Settings</button>
+  <button class="pr-btn prb-secondary" onclick="useDemoMode()">🎮 Demo Tanpa Kamera</button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     LOADING SCREEN
+══════════════════════════════════════════ -->
+<div class="scr" id="s-load">
+  <div class="ld-ring-wrap"><div class="ld-ring ld-r1"></div><div class="ld-ring ld-r2"></div><div class="ld-core">👁️</div></div>
+  <div class="ld-title">MATA</div>
+  <div class="ld-sub" id="ld-sub">Loading...</div>
+  <div class="ld-bar-wrap"><div class="ld-track"><div class="ld-fill" id="ld-fill"></div></div><div class="ld-msg" id="ld-msg">Memulai...</div></div>
+  <div class="ld-steps" id="ld-steps"></div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     USER / ABK MODE
+══════════════════════════════════════════ -->
+<div class="scr" id="s-user">
+  <video id="u-video" autoplay playsinline muted></video>
+  <canvas id="u-canvas"></canvas>
+  <div id="u-hud">
+    <div id="u-obj-wrap">
+      <div id="u-obj-name">Menunggu...</div>
+      <div id="u-obj-conf">Arahkan kamera ke objek</div>
+    </div>
+  </div>
+  <div id="u-spatial">
+    <div class="us-ring us-r1"></div><div class="us-ring us-r2"></div>
+    <div class="us-core" id="u-sp-core">📦</div>
+  </div>
+  <div id="u-bottom">
+    <button id="u-speak-btn" onclick="uManualSpeak()">🔊 &nbsp;Bicara Sekarang</button>
+    <div class="u-mode-toggle">
+      <div><div class="umt-label">Auto-Speak</div><div class="umt-sub">Bicara otomatis saat objek terdeteksi</div></div>
+      <label class="u-toggle"><input type="checkbox" id="u-auto" checked><div class="u-tog-sl"></div></label>
+    </div>
+  </div>
+  <button id="u-back-btn" onclick="backToMode()">← Ganti Mode</button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     DEVELOPER MODE
+══════════════════════════════════════════ -->
+<div class="scr" id="s-dev">
+  <!-- Top bar -->
+  <div id="dev-topbar">
+    <div class="dtb-brand"><div class="dtb-dot"></div><div class="dtb-name">MA<span>TA</span></div></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="dtb-mode">DEV MODE</div>
+      <button onclick="backToMode()" style="background:transparent;border:1px solid var(--rim);border-radius:100px;padding:5px 12px;color:var(--dim);font-size:10px;cursor:pointer;font-family:'Syne Mono',monospace;letter-spacing:.06em">← MODE</button>
+    </div>
+  </div>
+  <!-- Tabs -->
+  <div id="dev-tabs">
+    <button class="dt on" id="dt0" onclick="devTab(0)"><div class="dt-i">📷</div><div class="dt-l">AR Live</div></button>
+    <button class="dt" id="dt1" onclick="devTab(1)"><div class="dt-i">🧠</div><div class="dt-l">Training</div></button>
+    <button class="dt" id="dt2" onclick="devTab(2)"><div class="dt-i">🗄️</div><div class="dt-l">Model DB</div></button>
+    <button class="dt" id="dt3" onclick="devTab(3)"><div class="dt-i">🎯</div><div class="dt-l">Evaluasi</div></button>
+    <button class="dt" id="dt4" onclick="devTab(4)"><div class="dt-i">📊</div><div class="dt-l">Spreadsheet</div></button>
+  </div>
+  <!-- Content -->
+  <div id="dev-content">
+
+    <!-- ── AR LIVE ── -->
+    <div class="dp on" id="dp-ar">
+      <video id="d-video" autoplay playsinline muted></video>
+      <canvas id="d-canvas"></canvas>
+      <div id="d-hud-top">
+        <div class="d-chip">
+          <div class="dc-lbl">Objek</div>
+          <div class="dc-val" id="d-obj" style="color:var(--d1)">—</div>
+          <div class="dc-sub" id="d-sub">Mendeteksi...</div>
+        </div>
+        <div class="d-chip" style="text-align:right">
+          <div class="dc-lbl">Confidence</div>
+          <div class="dc-val" id="d-conf">—</div>
+          <div class="dc-sub" id="d-mode">Mode: Siswa</div>
+        </div>
+      </div>
+      <div id="d-cnt">Terdeteksi: <b id="d-cnt-n">0</b> objek</div>
+
+      <!-- VOTE BUTTONS ON CAMERA -->
+      <div id="vote-overlay">
+        <button class="vote-fab vf-yes" id="vfb-yes" onclick="quickVote(true)">
+          <div class="vf-icon">✅</div>
+          <div class="vf-lbl">BENAR</div>
+          <div class="vf-sub">Deteksi akurat</div>
+        </button>
+        <button class="vote-fab vf-no" id="vfb-no" onclick="quickVote(false)">
+          <div class="vf-icon">❌</div>
+          <div class="vf-lbl">SALAH</div>
+          <div class="vf-sub">Keliru / tidak yakin</div>
+        </button>
+      </div>
+
+      <!-- Vote popup feedback -->
+      <div id="vote-feedback"></div>
+
+      <!-- Correction sheet -->
+      <div id="d-correction">
+        <div class="dc-title">🤔 Apa yang sebenarnya ada?</div>
+        <div class="dc-q">Pilih objek yang seharusnya terdeteksi oleh AI:</div>
+        <div class="dc-opts" id="dc-opts"></div>
+        <button onclick="submitCorrection()" style="width:100%;padding:13px;border-radius:12px;background:rgba(255,77,109,.1);border:1px solid rgba(255,77,109,.2);color:var(--fire);font-weight:700;font-size:13px;cursor:pointer">
+          Kirim Koreksi →
+        </button>
+        <button onclick="closeCorrection()" style="width:100%;padding:10px;border-radius:12px;background:transparent;border:none;color:var(--dim);font-size:12px;cursor:pointer;margin-top:6px">
+          Lewati
+        </button>
+      </div>
+
+
+      <!-- ═══ TEACH AI TRIGGER (always visible) ═══ -->
+      <button id="teach-trigger" onclick="openTeachPanel()">
+        ✏️ Ajarkan Objek Ini
+      </button>
+
+      <!-- ═══ TEACH AI PANEL ═══ -->
+      <div id="teach-panel">
+        <div class="tp-handle"></div>
+        <div class="tp-title">✏️ Ajarkan AI</div>
+        <div class="tp-sub" id="tp-sub-txt">
+          AI belum mengenali objek ini. Beri tahu sistem apa yang ada di kamera, lalu ambil beberapa foto untuk melatihnya.
+        </div>
+
+        <!-- Stats: how many samples collected -->
+        <div class="tp-stats">
+          <div class="tp-stat"><div class="tp-stat-val" id="tp-total-classes">0</div><div class="tp-stat-lbl">Kelas terdaftar</div></div>
+          <div class="tp-stat"><div class="tp-stat-val" id="tp-total-samples">0</div><div class="tp-stat-lbl">Total foto</div></div>
+          <div class="tp-stat"><div class="tp-stat-val" id="tp-cur-samples" style="color:var(--gold)">0</div><div class="tp-stat-lbl">Foto kelas ini</div></div>
+        </div>
+
+        <!-- Name input -->
+        <div class="tp-input-row">
+          <input type="text" id="tp-obj-name" class="tp-obj-input"
+            placeholder="Nama objek, cth: kipas angin"
+            oninput="onTeachNameInput()"
+            autocomplete="off" autocorrect="off" spellcheck="false">
+        </div>
+
+        <!-- Quick suggestions -->
+        <div class="tp-suggestions" id="tp-suggestions">
+          <div class="tp-sug" onclick="setTeachName('kipas angin')">🌀 Kipas</div>
+          <div class="tp-sug" onclick="setTeachName('dompet')">👛 Dompet</div>
+          <div class="tp-sug" onclick="setTeachName('uang kertas')">💵 Uang</div>
+          <div class="tp-sug" onclick="setTeachName('kunci')">🔑 Kunci</div>
+          <div class="tp-sug" onclick="setTeachName('helm')">⛑️ Helm</div>
+          <div class="tp-sug" onclick="setTeachName('obat')">💊 Obat</div>
+          <div class="tp-sug" onclick="setTeachName('sendok')">🥄 Sendok</div>
+          <div class="tp-sug" onclick="setTeachName('piring')">🍽️ Piring</div>
+          <div class="tp-sug" onclick="setTeachName('jam tangan')">⌚ Jam</div>
+          <div class="tp-sug" onclick="setTeachName('kacamata')">👓 Kacamata</div>
+          <div class="tp-sug" onclick="setTeachName('masker')">😷 Masker</div>
+          <div class="tp-sug" onclick="setTeachName('rice cooker')">🍳 Rice Cooker</div>
+          <div class="tp-sug" onclick="setTeachName('charger')">🔌 Charger</div>
+          <div class="tp-sug" onclick="setTeachName('headphone')">🎧 Headphone</div>
+          <div class="tp-sug" onclick="setTeachName('payung')">☂️ Payung</div>
+          <div class="tp-sug" onclick="setTeachName('kursi')">🪑 Kursi</div>
+          <div class="tp-sug" onclick="setTeachName('meja')">🪑 Meja</div>
+          <div class="tp-sug" onclick="setTeachName('tas sekolah')">🎒 Tas</div>
+        </div>
+
+        <!-- Camera strip: live preview + captured photos -->
+        <div class="tp-cam-strip" id="tp-cam-strip">
+          <div class="tp-live-thumb" id="tp-live-wrap">
+            <video id="tp-video" class="tp-live-video" autoplay playsinline muted></video>
+            <div class="tp-live-overlay">📷</div>
+          </div>
+          <!-- captured thumbnails inserted here by JS -->
+        </div>
+
+        <!-- Action buttons -->
+        <div class="tp-actions">
+          <button class="tp-btn-capture" onclick="teachCapture()" id="tp-cap-btn">
+            📸 Ambil Foto
+          </button>
+          <button class="tp-btn-hold" id="tp-hold-btn"
+            ontouchstart="teachHoldStart()" ontouchend="teachHoldEnd()"
+            onmousedown="teachHoldStart()" onmouseup="teachHoldEnd()">
+            ⏺ Tahan
+          </button>
+          <label class="tp-btn-hold" style="cursor:pointer" title="Upload dari galeri">
+            🖼️
+            <input type="file" accept="image/*" multiple style="display:none" onchange="teachGallery(this)">
+          </label>
+          <button class="tp-btn-close" onclick="closeTeachPanel()">✕</button>
+        </div>
+
+        <!-- Save & train -->
+        <div style="padding:10px 18px 0;display:flex;gap:8px">
+          <button id="tp-save-btn" onclick="saveTeachSamples()"
+            style="flex:1;padding:12px;border-radius:12px;background:rgba(0,229,200,.1);border:1.5px solid rgba(0,229,200,.25);color:var(--d1);font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation;opacity:.4;pointer-events:none">
+            💾 Simpan ke Dataset
+          </button>
+          <button onclick="goToTrainWithData()"
+            style="flex:1;padding:12px;border-radius:12px;background:rgba(245,197,24,.1);border:1.5px solid rgba(245,197,24,.25);color:var(--gold);font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation">
+            ⚡ Latih Sekarang
+          </button>
+        </div>
+      </div>
+
+      <div id="d-bottom">
+        <div id="d-det-name" style="color:var(--tx)">Menunggu...</div>
+        <div class="d-det-row">
+          <div class="d-conf-bar"><div class="d-conf-fill" id="d-cf"></div></div>
+          <span id="d-ct" style="font-size:11px;color:var(--dim)">—</span>
+          <div id="d-det-pos">—</div>
+        </div>
+        <div class="d-act-row">
+          <button class="dab dab-speak" onclick="devSpeak()">🔊 Bicara</button>
+          <button class="dab dab-mode" id="d-mode-btn" onclick="devToggleMode()">👁️</button>
+          <button class="dab dab-ic" onclick="devTab(3)" title="Evaluasi">📊</button>
+          <button class="dab dab-ic" id="d-pause-btn" onclick="devTogglePause()">⏸</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TRAINING STUDIO ── -->
+    <div class="dp" id="dp-train">
+      <div class="ey ey-g" style="margin-bottom:5px">Training Studio</div>
+      <div class="h2" style="margin-bottom:5px">Latih Model <em style="color:var(--gold)">Langsung</em></div>
+      <p class="sub-txt">Kumpulkan foto per kelas, atau <strong style="color:var(--gold)">muat langsung dari dataset</strong> yang sudah dikumpulkan via fitur "Ajarkan Objek Ini" di AR Live.</p>
+      <div id="train-dataset-info" style="background:var(--s2);border:1px solid var(--rim);border-radius:12px;padding:11px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px">
+        <div style="font-size:20px">📦</div>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:600;margin-bottom:1px" id="tdi-text">Dataset: memuat...</div>
+          <div style="font-size:10px;color:var(--dim)">Dari fitur "Ajarkan Objek Ini" di AR Live</div>
+        </div>
+        <button onclick="syncTeachToTraining()" style="padding:7px 12px;border-radius:9px;background:rgba(0,229,200,.1);border:1px solid rgba(0,229,200,.2);color:var(--d1);font-size:11px;font-weight:600;cursor:pointer;touch-action:manipulation">Muat</button>
+      </div>
+
+      <!-- Classes -->
+      <div id="classes-container"></div>
+
+      <!-- Dataset loader banner -->
+      <div id="dataset-banner" style="display:none;background:rgba(0,229,200,.06);border:1.5px solid rgba(0,229,200,.2);border-radius:14px;padding:13px 16px;margin-bottom:12px">
+        <div style="font-family:'Syne Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--d1);margin-bottom:5px">📦 Dataset Tersimpan Ditemukan</div>
+        <div style="font-size:12px;color:var(--dim);margin-bottom:10px" id="dataset-banner-txt">Kamu punya data foto berlabel. Muat ke sini untuk mulai training.</div>
+        <div style="display:flex;gap:8px">
+          <button onclick="syncTeachToTraining()" style="flex:1;padding:10px;border-radius:10px;background:var(--d1);color:var(--bg);font-weight:700;font-size:13px;cursor:pointer;border:none;touch-action:manipulation">
+            📥 Muat Dataset ke Training
+          </button>
+          <button onclick="document.getElementById('dataset-banner').style.display='none'" style="padding:10px 14px;border-radius:10px;background:var(--s3);border:1px solid var(--rim);color:var(--dim);font-size:13px;cursor:pointer;touch-action:manipulation">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="addClass()">
+          ＋ Tambah Kelas
+        </button>
+        <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="syncTeachToTraining()">
+          📥 Muat Dataset
+        </button>
+      </div>
+
+      <!-- Training config -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-h"><div class="ch-ic">⚙️</div><div><div class="ch-t">Konfigurasi Training</div><div class="ch-s">Transfer learning dari MobileNet</div></div></div>
+        <div class="card-b">
+          <div class="inp-w">
+            <div class="inp-lbl">Epochs (iterasi training)</div>
+            <input type="range" id="tr-epochs" min="10" max="100" value="50" oninput="document.getElementById('tr-ep-val').textContent=this.value"
+              style="width:100%;accent-color:var(--gold)">
+            <div style="display:flex;justify-content:space-between;font-family:'Syne Mono',monospace;font-size:10px;color:var(--dim);margin-top:4px">
+              <span>10 (cepat)</span><span id="tr-ep-val" style="color:var(--gold)">50</span><span>100 (akurat)</span>
+            </div>
+          </div>
+          <div class="inp-w">
+            <div class="inp-lbl">Learning Rate</div>
+            <select id="tr-lr" class="inp" style="font-size:12px">
+              <option value="0.001">0.001 — Standar (direkomendasikan)</option>
+              <option value="0.0001">0.0001 — Konservatif (lebih stabil)</option>
+              <option value="0.003">0.003 — Agresif (lebih cepat)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div id="train-progress">
+        <div class="tp-label"><div class="tp-spinner"></div>Melatih Model...</div>
+        <div class="tp-bar-bg"><div class="tp-bar" id="tp-bar"></div></div>
+        <div class="tp-step" id="tp-step">Memuat MobileNet...</div>
+      </div>
+      <div id="train-result">
+        <div class="ey ey-l">Training Selesai ✓</div>
+        <div class="tr-acc" id="tr-acc-val">—</div>
+        <div class="tr-desc" id="tr-desc">—</div>
+      </div>
+
+      <button class="btn btn-g btn-full" id="train-btn" onclick="startTraining()" style="margin-bottom:10px;opacity:.4;pointer-events:none">
+        ⚡ Mulai Training Sekarang
+      </button>
+      <button class="btn btn-d btn-full" id="deploy-btn" onclick="deployTrainedModel()" style="display:none;margin-bottom:10px">
+        🚀 Deploy ke AR Live
+      </button>
+    </div>
+
+    <!-- ── MODEL DB ── -->
+    <div class="dp" id="dp-models">
+      <div class="ey ey-d" style="margin-bottom:5px">Database Model</div>
+      <div class="h2" style="margin-bottom:5px">Kelola <em style="color:var(--d1)">Model AI</em></div>
+      <p class="sub-txt">Model yang dilatih langsung atau diimport dari Teachable Machine. Skor dihitung dari vote evaluasi.</p>
+
+      <!-- Active model -->
+      <div style="background:linear-gradient(135deg,rgba(0,229,200,.07),rgba(61,155,255,.04));border:1px solid rgba(0,229,200,.16);border-radius:16px;padding:16px;margin-bottom:14px" id="active-m-card">
+        <div class="ey ey-d">● Model Aktif</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;margin-bottom:3px" id="am-name">COCO-SSD (Default)</div>
+        <div style="font-size:11px;color:var(--dim);margin-bottom:12px" id="am-meta">Built-in · 80 kelas</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+          <div style="background:rgba(0,0,0,.2);border-radius:9px;padding:10px;text-align:center"><div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--d1)" id="am-score">—</div><div style="font-size:9px;color:var(--dim)">Akurasi</div></div>
+          <div style="background:rgba(0,0,0,.2);border-radius:9px;padding:10px;text-align:center"><div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--gold)" id="am-votes">0</div><div style="font-size:9px;color:var(--dim)">Vote</div></div>
+          <div style="background:rgba(0,0,0,.2);border-radius:9px;padding:10px;text-align:center"><div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--sky)" id="am-classes">80</div><div style="font-size:9px;color:var(--dim)">Kelas</div></div>
+        </div>
+      </div>
+
+      <!-- DB stats -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div style="background:var(--s2);border:1px solid var(--rim);border-radius:13px;padding:13px;text-align:center"><div style="font-family:'Syne',sans-serif;font-weight:800;font-size:24px;color:var(--d1)" id="db-total">0</div><div style="font-size:10px;color:var(--dim)">Total Model</div></div>
+        <div style="background:var(--s2);border:1px solid var(--rim);border-radius:13px;padding:13px;text-align:center"><div style="font-family:'Syne',sans-serif;font-weight:800;font-size:24px;color:var(--gold)" id="db-votes">0</div><div style="font-size:10px;color:var(--dim)">Total Vote</div></div>
+      </div>
+
+      <div id="model-list-ui" style="margin-bottom:14px">
+        <div style="text-align:center;padding:20px;color:var(--dim);font-size:12px;font-family:'Syne Mono',monospace">Belum ada model custom.</div>
+      </div>
+
+      <!-- Import from TM -->
+      <div class="ey ey-d" style="margin-bottom:8px">Import dari Teachable Machine</div>
+      <div class="card">
+        <div class="card-b">
+          <div class="inp-w">
+            <div class="inp-lbl">URL Model TM</div>
+            <input type="url" id="tm-url" class="inp" style="font-family:'Syne Mono',monospace;font-size:11px" placeholder="https://teachablemachine.withgoogle.com/models/..." inputmode="url" oninput="onTMURLInput()">
+          </div>
+          <div class="url-val-box" id="tm-url-box"><span style="color:var(--dim);font-size:12px">Masukkan URL untuk validasi otomatis</span></div>
+          <div class="inp-w"><div class="inp-lbl">Nama Model</div><input type="text" id="tm-name" class="inp" placeholder="cth: Model Dapur v2"></div>
+          <div class="inp-w"><div class="inp-lbl">Catatan</div><textarea id="tm-notes" class="inp" rows="2" style="resize:none;line-height:1.5" placeholder="Kelas yang dilatih, jumlah foto, kondisi training..."></textarea></div>
+          <button class="btn btn-d btn-full" id="tm-save-btn" onclick="saveTMModel()" disabled style="opacity:.4">💾 Simpan ke Database</button>
+        </div>
+      </div>
+      <a href="https://teachablemachine.withgoogle.com/train" target="_blank" style="display:flex;align-items:center;gap:12px;background:rgba(0,229,200,.05);border:1px solid rgba(0,229,200,.13);border-radius:13px;padding:13px 15px;text-decoration:none;margin-top:4px">
+        <div style="font-size:26px">🧠</div>
+        <div><div style="font-weight:700;font-size:13px;color:var(--d1)">Buka Teachable Machine</div><div style="font-size:11px;color:var(--dim);margin-top:1px">teachablemachine.withgoogle.com/train ↗</div></div>
+      </a>
+    </div>
+
+    <!-- ── EVALUATION ── -->
+    <div class="dp" id="dp-eval">
+      <div class="ey ey-v" style="margin-bottom:5px">Story C · Evaluasi</div>
+      <div class="h2" style="margin-bottom:5px">Vote & <em style="color:var(--violet)">Analitik</em></div>
+      <p class="sub-txt">Vote benar/salah langsung dari AR Live sudah terekam di sini. Evaluasi per kelas dan analitik otomatis dari data vote.</p>
+
+      <!-- Session summary -->
+      <div class="sess-bar">
+        <div class="ey ey-d">Sesi Ini</div>
+        <div class="sess-acc" id="ev-sess-acc" style="color:var(--dim)">—</div>
+        <div style="font-size:12px;color:var(--dim);margin-bottom:8px" id="ev-sess-desc">Belum ada vote</div>
+        <div class="grade-strip">
+          <div class="gs-item gs-a">A ≥90%</div>
+          <div class="gs-item gs-b">B 75–90%</div>
+          <div class="gs-item gs-c">C 60–75%</div>
+          <div class="gs-item gs-d">D &lt;60%</div>
+        </div>
+      </div>
+
+      <!-- Per-class evaluation -->
+      <!-- DATA STORAGE INFO -->
+      <div style="background:rgba(0,229,200,.04);border:1px solid rgba(0,229,200,.12);border-radius:14px;padding:13px 16px;margin-bottom:14px">
+        <div style="font-family:'Syne Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--d1);margin-bottom:7px">🗄️ Di Mana Data Disimpan?</div>
+        <div style="font-size:12px;color:var(--dim);line-height:1.65">
+          Setiap vote yang kamu berikan disimpan di <strong style="color:var(--tx)">IndexedDB</strong> — database permanen di browser perangkat ini. Data tidak hilang meski browser ditutup atau HP di-restart.<br><br>
+          <strong style="color:var(--tx)">Yang tersimpan per vote:</strong> model yang dievaluasi, nama objek, akurat/tidak, confidence AI, koreksi (jika salah), dan waktu.<br><br>
+          <span style="color:var(--gold)">⚠️ Data hanya ada di perangkat ini.</span> Jika dibuka di HP lain, data vote belum tersedia — ini keterbatasan browser tanpa server.
+        </div>
+        <button onclick="exportVotesCSV()" style="margin-top:10px;padding:8px 14px;border-radius:9px;background:rgba(0,229,200,.08);border:1px solid rgba(0,229,200,.15);color:var(--d1);font-size:11px;cursor:pointer;font-family:'Syne Mono',monospace;letter-spacing:.06em">
+          📥 Export Data Vote (.csv)
+        </button>
+      </div>
+
+      <div class="ey ey-s" style="margin-bottom:8px">Evaluasi Per Kelas</div>
+      <div id="pcv-grid" style="margin-bottom:14px"></div>
+
+      <!-- Vote log -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div class="ey" style="margin-bottom:0;color:var(--dim)">Log Vote Real-time</div>
+        <button onclick="clearVoteLog()" style="font-size:9px;color:var(--fire);background:transparent;border:1px solid rgba(255,77,109,.2);border-radius:100px;padding:3px 10px;cursor:pointer;font-family:'Syne Mono',monospace">HAPUS</button>
+      </div>
+      <div id="vote-log-ui" style="display:flex;flex-direction:column;gap:7px;max-height:200px;overflow-y:auto;margin-bottom:14px">
+        <div style="text-align:center;padding:16px;color:var(--dim);font-size:11px;font-family:'Syne Mono',monospace">Vote dari AR Live akan muncul di sini.</div>
+      </div>
+
+      <!-- Analytics -->
+      <div class="ey ey-v" style="margin-bottom:8px">Analitik dari Vote</div>
+      <div id="analytics-box" style="background:var(--s2);border:1px solid var(--rim);border-radius:14px;padding:14px 16px;margin-bottom:10px">
+        <div style="color:var(--dim);font-size:12px;text-align:center">Kumpulkan 10+ vote untuk analitik</div>
+      </div>
+
+      <button onclick="clearAllVotes()" style="width:100%;padding:12px;border-radius:12px;background:rgba(255,77,109,.05);border:1px solid rgba(255,77,109,.13);color:var(--fire);font-size:12px;cursor:pointer;font-family:'Syne Mono',monospace;letter-spacing:.04em">
+        🗑️ RESET SEMUA VOTE
+      </button>
+    </div>
+
+
+    <!-- ── SPREADSHEET DATABASE ── -->
+    <div class="dp" id="dp-sheet">
+
+      <!-- Header & controls -->
+      <div class="ey ey-d" style="margin-bottom:5px">Spreadsheet Database</div>
+      <div class="h2" style="margin-bottom:5px">Data <em style="color:var(--d1)">Evaluasi Lengkap</em></div>
+      <p class="sub-txt">Semua vote tersimpan di IndexedDB dan ditampilkan sebagai spreadsheet interaktif. Data korelasi akurasi AI dihitung otomatis dari pola vote.</p>
+
+      <!-- Summary cards -->
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px" id="sheet-summary">
+        <div style="background:var(--s2);border:1px solid var(--rim);border-radius:13px;padding:12px;text-align:center">
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:24px;color:var(--d1)" id="ss-total">0</div>
+          <div style="font-size:10px;color:var(--dim)">Total Record</div>
+        </div>
+        <div style="background:var(--s2);border:1px solid var(--rim);border-radius:13px;padding:12px;text-align:center">
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:24px;color:var(--lime)" id="ss-acc">—</div>
+          <div style="font-size:10px;color:var(--dim)">Akurasi Global</div>
+        </div>
+        <div style="background:var(--s2);border:1px solid var(--rim);border-radius:13px;padding:12px;text-align:center">
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:24px;color:var(--gold)" id="ss-models">0</div>
+          <div style="font-size:10px;color:var(--dim)">Model Dievaluasi</div>
+        </div>
+        <div style="background:var(--s2);border:1px solid var(--rim);border-radius:13px;padding:12px;text-align:center">
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:24px;color:var(--fire)" id="ss-weak">—</div>
+          <div style="font-size:10px;color:var(--dim)">Kelas Terlemah</div>
+        </div>
+      </div>
+
+      <!-- Correlation: Vote data → AI accuracy -->
+      <div style="background:rgba(0,229,200,.04);border:1px solid rgba(0,229,200,.12);border-radius:14px;padding:14px 16px;margin-bottom:14px">
+        <div style="font-family:'Syne Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--d1);margin-bottom:8px">🔗 Korelasi Data → Akurasi AI</div>
+        <div style="font-size:12px;color:var(--dim);line-height:1.7;margin-bottom:10px">
+          Setiap vote yang masuk dianalisis untuk menghitung <strong style="color:var(--tx)">confidence score</strong> per kelas. Objek dengan vote ❌ yang banyak menandakan AI membutuhkan lebih banyak data training untuk kelas tersebut.
+        </div>
+        <div id="correlation-chart"></div>
+      </div>
+
+      <!-- Filter controls -->
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap" id="sheet-filters">
+        <select id="sf-model" class="inp" style="flex:1;min-width:120px;font-size:11px;padding:9px 10px" onchange="refreshSheet()">
+          <option value="all">Semua Model</option>
+        </select>
+        <select id="sf-verdict" class="inp" style="flex:1;min-width:100px;font-size:11px;padding:9px 10px" onchange="refreshSheet()">
+          <option value="all">Semua Vote</option>
+          <option value="correct">✅ Benar</option>
+          <option value="wrong">❌ Salah</option>
+        </select>
+        <button onclick="refreshSheet()" style="padding:9px 14px;border-radius:11px;background:var(--s3);border:1px solid var(--rim);color:var(--tx);font-size:12px;cursor:pointer">🔄</button>
+      </div>
+
+      <!-- Spreadsheet table -->
+      <div style="background:var(--s2);border:1px solid var(--rim);border-radius:14px;overflow:hidden;margin-bottom:12px">
+        <!-- Column headers -->
+        <div style="display:grid;grid-template-columns:40px 1fr 80px 60px 55px 65px;gap:0;background:var(--s3);border-bottom:1px solid var(--rim);padding:8px 10px">
+          <div style="font-family:'Syne Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)">#</div>
+          <div style="font-family:'Syne Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)">Objek</div>
+          <div style="font-family:'Syne Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)">Conf.</div>
+          <div style="font-family:'Syne Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)">Vote</div>
+          <div style="font-family:'Syne Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)">Koreksi</div>
+          <div style="font-family:'Syne Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)">Waktu</div>
+        </div>
+        <!-- Rows -->
+        <div id="sheet-rows" style="max-height:320px;overflow-y:auto;-webkit-overflow-scrolling:touch">
+          <div style="text-align:center;padding:20px;color:var(--dim);font-size:12px;font-family:'Syne Mono',monospace">
+            Belum ada data. Mulai evaluasi di AR Live.
+          </div>
+        </div>
+        <!-- Pagination -->
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-top:1px solid var(--rim);background:var(--s3)">
+          <button id="sheet-prev" onclick="sheetPage(-1)" style="padding:5px 12px;border-radius:8px;background:var(--s2);border:1px solid var(--rim);color:var(--dim);font-size:11px;cursor:pointer">← Prev</button>
+          <span id="sheet-page-info" style="font-family:'Syne Mono',monospace;font-size:10px;color:var(--dim)">— / —</span>
+          <button id="sheet-next" onclick="sheetPage(1)" style="padding:5px 12px;border-radius:8px;background:var(--s2);border:1px solid var(--rim);color:var(--dim);font-size:11px;cursor:pointer">Next →</button>
+        </div>
+      </div>
+
+      <!-- Per-class accuracy table from vote data -->
+      <div class="ey ey-g" style="margin-bottom:8px">Tabel Akurasi Per Kelas</div>
+      <div style="background:var(--s2);border:1px solid var(--rim);border-radius:14px;overflow:hidden;margin-bottom:12px">
+        <div style="display:grid;grid-template-columns:1fr 50px 50px 50px 60px;gap:0;background:var(--s3);border-bottom:1px solid var(--rim);padding:8px 12px">
+          <div style="font-family:'Syne Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)">Kelas</div>
+          <div style="font-family:'Syne Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--lime);text-align:center">✅</div>
+          <div style="font-family:'Syne Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--fire);text-align:center">❌</div>
+          <div style="font-family:'Syne Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);text-align:center">Total</div>
+          <div style="font-family:'Syne Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);text-align:right">Akurasi</div>
+        </div>
+        <div id="class-acc-table" style="max-height:280px;overflow-y:auto;-webkit-overflow-scrolling:touch">
+          <div style="text-align:center;padding:16px;color:var(--dim);font-size:12px;font-family:'Syne Mono',monospace">Belum ada data</div>
+        </div>
+      </div>
+
+      <!-- Export buttons -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="exportVotesCSV()" style="flex:1;padding:12px;border-radius:12px;background:rgba(0,229,200,.08);border:1px solid rgba(0,229,200,.15);color:var(--d1);font-size:12px;cursor:pointer;font-weight:600">
+          📥 Export CSV
+        </button>
+        <button onclick="exportVotesJSON()" style="flex:1;padding:12px;border-radius:12px;background:rgba(245,197,24,.08);border:1px solid rgba(245,197,24,.15);color:var(--gold);font-size:12px;cursor:pointer;font-weight:600">
+          📋 Export JSON
+        </button>
+        <button onclick="importVotesJSON()" style="flex:1;padding:12px;border-radius:12px;background:rgba(61,155,255,.08);border:1px solid rgba(61,155,255,.15);color:var(--sky);font-size:12px;cursor:pointer;font-weight:600">
+          📤 Import JSON
+        </button>
+      </div>
+      <input type="file" id="import-json-input" accept=".json" style="display:none" onchange="doImportJSON(this)">
+
+    </div>
+
+  </div><!-- end dev-content -->
+</div><!-- end s-dev -->
+
+<!-- TF + COCO-SSD + TM -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════
+//  TRANSLATIONS
+// ═══════════════════════════════════════════════════
+const ID_LBL={
+  // People & transport
+  person:'orang',bicycle:'sepeda',car:'mobil',motorcycle:'motor',
+  airplane:'pesawat',bus:'bus',train:'kereta',truck:'truk',boat:'perahu',
+  // Animals
+  cat:'kucing',dog:'anjing',bird:'burung',horse:'kuda',cow:'sapi',
+  elephant:'gajah',bear:'beruang',zebra:'zebra',giraffe:'jerapah',
+  // Kitchen & food
+  bottle:'botol',cup:'cangkir',wine_glass:'gelas',fork:'garpu',
+  knife:'pisau',spoon:'sendok',bowl:'mangkuk',banana:'pisang',
+  apple:'apel',orange:'jeruk',sandwich:'sandwich',pizza:'pizza',
+  cake:'kue',hot_dog:'hot dog',donut:'donat',broccoli:'brokoli',
+  carrot:'wortel',
+  // Furniture & room
+  chair:'kursi',couch:'sofa',bed:'tempat tidur',dining_table:'meja makan',
+  toilet:'toilet',sink:'wastafel',potted_plant:'tanaman',vase:'vas bunga',
+  // Electronics
+  tv:'televisi',laptop:'laptop',mouse:'mouse komputer',remote:'remote',
+  keyboard:'keyboard',cell_phone:'ponsel',microwave:'microwave',
+  oven:'oven',toaster:'pemanggang roti',refrigerator:'kulkas',
+  // Accessories & bags
+  book:'buku',clock:'jam',scissors:'gunting',toothbrush:'sikat gigi',
+  backpack:'ransel',handbag:'tas tangan',umbrella:'payung',
+  suitcase:'koper',tie:'dasi',
+  // Custom objects (common in Indonesia)
+  fan:'kipas',wallet:'dompet',money:'uang',medicine:'obat',
+  glasses:'kacamata',helmet:'helm',keys:'kunci',watch:'jam tangan',
+  rice:'nasi',rice_cooker:'rice cooker',plate:'piring',mug:'mug',
+  charger:'charger',headphone:'headphone',power_bank:'power bank',
+  mask:'masker',sarong:'sarung',sandal:'sandal',
+  teddy_bear:'boneka teddy',hair_drier:'pengering rambut',
+  sports_ball:'bola',kite:'layang-layang',
+};
+const EMOJI_M={
+  person:'🧑',bicycle:'🚲',car:'🚗',motorcycle:'🏍️',airplane:'✈️',
+  bus:'🚌',train:'🚆',truck:'🚚',boat:'⛵',
+  cat:'🐱',dog:'🐕',bird:'🐦',horse:'🐴',cow:'🐄',
+  elephant:'🐘',bear:'🐻',zebra:'🦓',giraffe:'🦒',
+  bottle:'🍶',cup:'☕',wine_glass:'🍷',fork:'🍴',knife:'🔪',
+  spoon:'🥄',bowl:'🥣',banana:'🍌',apple:'🍎',orange:'🍊',
+  pizza:'🍕',cake:'🎂',hot_dog:'🌭',donut:'🍩',broccoli:'🥦',carrot:'🥕',
+  chair:'🪑',couch:'🛋️',bed:'🛏️',dining_table:'🍽️',toilet:'🚽',
+  sink:'🚿',potted_plant:'🪴',vase:'🏺',
+  tv:'📺',laptop:'💻',cell_phone:'📱',remote:'📺',keyboard:'⌨️',
+  mouse:'🖱️',microwave:'📦',refrigerator:'🧊',
+  book:'📚',clock:'🕐',scissors:'✂️',toothbrush:'🪥',
+  backpack:'🎒',handbag:'👜',umbrella:'☂️',suitcase:'🧳',
+  fan:'🌀',wallet:'👛',money:'💵',medicine:'💊',
+  glasses:'👓',helmet:'⛑️',keys:'🔑',watch:'⌚',
+  rice:'🍚',rice_cooker:'🍳',plate:'🍽️',mug:'🫖',
+  charger:'🔌',headphone:'🎧',power_bank:'🔋',mask:'😷',
+  sandal:'🩴',teddy_bear:'🧸',hair_drier:'💨',sports_ball:'⚽',kite:'🪁',
+};
+function toID(c){return ID_LBL[c]||c}
+function toEmoji(c){return EMOJI_M[c]||'📦'}
+
+// ═══════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════
+const APP = {
+  mode: null,          // 'user' | 'dev'
+  isDemoMode: false,
+  stream: null,
+  cocoModel: null,
+  customModel: null,   // trained in-browser TF model
+  tmModels: {},        // loaded TM models cache
+  activeModelId: 'coco',
+  running: true,
+  paused: false,
+  tunanetra: false,    // dev mode tunanetra toggle
+
+  // Current detection
+  cur: {cls:'',label:'—',score:0,pos:'—',dist:'—'},
+
+  // TTS
+  lastSpokenCls:'', lastSpokenT:0,
+  ttsRate:0.88, ttsPitch:1.05, ttsVol:1.0,
+  ttsInterval:3000, ttsThresh:0.65,
+  idVoice: null,
+
+  // Session vote stats
+  sessYes:0, sessNo:0,
+  classVotes:{},
+  selCorrection: null,
+  urlTimer: null,
+
+  // Training state
+  trainClasses: [],    // [{name,color,samples:[{img,dataURL}]}]
+  trainedModel: null,  // {model, labels, accuracy}
+  classColors:['#00E5C8','#F5C518','#FF4D6D','#3D9BFF','#9B7FFF','#7CFF6B','#FF9500'],
+};
+
+// ═══════════════════════════════════════════════════
+//  INDEX DB
+// ═══════════════════════════════════════════════════
+let db = null;
+// DB initialization handled by patchDB() which runs after TEACH system loads
+function dbPut(s,d){return new Promise((r,e)=>{if(!db){r(null);return}const t=db.transaction(s,'readwrite');t.objectStore(s).put(d).onsuccess=ev=>r(ev.target.result);t.onerror=ev=>e(ev)})}
+function dbGet(s,k){return new Promise((r,e)=>{if(!db){r(null);return}const t=db.transaction(s,'readonly');t.objectStore(s).get(k).onsuccess=ev=>r(ev.target.result);t.onerror=ev=>e(ev)})}
+function dbAll(s){return new Promise((r,e)=>{if(!db){r([]);return}const t=db.transaction(s,'readonly');t.objectStore(s).getAll().onsuccess=ev=>r(ev.target.result);t.onerror=ev=>e(ev)})}
+function dbDel(s,k){return new Promise((r,e)=>{if(!db){r();return}const t=db.transaction(s,'readwrite');t.objectStore(s).delete(k).onsuccess=()=>r();t.onerror=ev=>e(ev)})}
+function dbClear(s){return new Promise((r,e)=>{if(!db){r();return}const t=db.transaction(s,'readwrite');t.objectStore(s).clear().onsuccess=()=>r();t.onerror=ev=>e(ev)})}
+function dbByIdx(s,idx,val){return new Promise((r,e)=>{if(!db){r([]);return}const t=db.transaction(s,'readonly');t.objectStore(s).index(idx).getAll(val).onsuccess=ev=>r(ev.target.result);t.onerror=ev=>e(ev)})}
+
+// ═══════════════════════════════════════════════════
+//  MODE SELECTION
+// ═══════════════════════════════════════════════════
+function enterUserMode(){APP.mode='user';showScr('s-perm');setupPermScreen('user')}
+function enterDevMode(){APP.mode='dev';showScr('s-perm');setupPermScreen('dev')}
+function backToMode(){
+  APP.running=false;
+  if(APP.stream){APP.stream.getTracks().forEach(t=>t.stop());APP.stream=null}
+  showScr('s-mode');
+  APP.mode=null;APP.running=true;
+}
+
+function showScr(id){
+  document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+}
+
+// ═══════════════════════════════════════════════════
+//  PERMISSION SYSTEM
+// ═══════════════════════════════════════════════════
+function setupPermScreen(mode){
+  const isFile=location.protocol==='file:';
+  if(isFile){
+    document.getElementById('pr-icon').textContent='⚠️';
+    document.getElementById('pr-title').textContent='Perlu koneksi HTTPS';
+    document.getElementById('pr-sub').textContent='File ini dibuka dari penyimpanan lokal. Upload ke GitHub Pages atau Netlify untuk mengaktifkan kamera.';
+    document.getElementById('pr-card-body').innerHTML=`
+      <div class="pr-step"><div class="pr-step-num">1</div><div><strong>Upload ke Netlify Drop</strong>netlify.com/drop — drag & drop file ini</div></div>
+      <div class="pr-step"><div class="pr-step-num">2</div><div><strong>Atau GitHub Pages</strong>Upload & aktifkan Pages di Settings</div></div>
+    `;
+    document.getElementById('pr-main-btn').style.display='none';
+  }
+}
+
+async function requestPermission(){
+  const btn=document.getElementById('pr-main-btn');
+  btn.textContent='⏳ Meminta izin...';
+  btn.style.opacity='.7';btn.style.pointerEvents='none';
+  try {
+    let stream;
+    try {stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}})}
+    catch(e1){
+      try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}})}
+      catch(e2){stream=await navigator.mediaDevices.getUserMedia({video:true})}
+    }
+    APP.stream=stream;
+    document.getElementById('pr-led').className='pr-led ok';
+    document.getElementById('pr-head-title').textContent='✓ Izin diterima!';
+    await new Promise(r=>setTimeout(r,500));
+    startLoad();
+  } catch(err){
+    btn.textContent='🔄 Coba Lagi';btn.style.opacity='1';btn.style.pointerEvents='auto';
+    document.getElementById('pr-led').className='pr-led err';
+    document.getElementById('pr-head-title').textContent='Izin ditolak';
+    const errEl=document.getElementById('pr-err');
+    errEl.textContent='Error: '+err.name+' — '+err.message;
+    errEl.classList.add('show');
+    if(err.name==='NotAllowedError'||err.name==='PermissionDeniedError'){
+      document.getElementById('pr-set-btn').style.display='flex';
+      showDeniedSteps();
+    }
+  }
+}
+
+function showDeniedSteps(){
+  const isAndroid=/Android/i.test(navigator.userAgent);
+  document.getElementById('pr-card-body').innerHTML=isAndroid?`
+    <div class="pr-step"><div class="pr-step-num">1</div><div><strong>Settings HP → Aplikasi → Chrome</strong>Izin → Kamera → Izinkan</div></div>
+    <div class="pr-step"><div class="pr-step-num">2</div><div><strong>Atau di Chrome:</strong>Tap ⋮ → Settings → Izin Situs → Kamera → Hapus dari blokir</div></div>
+  `:`
+    <div class="pr-step"><div class="pr-step-num">1</div><div><strong>Klik ikon 🔒 di address bar</strong>Ubah Kamera → Izinkan</div></div>
+    <div class="pr-step"><div class="pr-step-num">2</div><div><strong>Refresh halaman ini</strong>Lalu coba lagi</div></div>
+  `;
+}
+
+function showPermSettings(){showDeniedSteps()}
+function useDemoMode(){APP.isDemoMode=true;startLoad()}
+
+// ═══════════════════════════════════════════════════
+//  LOADING
+// ═══════════════════════════════════════════════════
+const STEPS_USER=[
+  ['Memuat TensorFlow.js','Mengunduh model COCO-SSD (~6MB)','Kalibasi NMS & smoothing','Inisialisasi Text-to-Speech'],
+];
+const STEPS_DEV=[
+  'Memuat TensorFlow.js','Mengunduh model COCO-SSD','Memuat MobileNet base','Inisialisasi training engine','Kamera & TTS siap',
+];
+
+async function startLoad(){
+  showScr('s-load');
+  document.getElementById('ld-sub').textContent=APP.mode==='user'?'Mode Tunanetra':'Mode Developer';
+  const steps=STEPS_DEV;
+  const stepsEl=document.getElementById('ld-steps');
+  stepsEl.innerHTML=steps.map((_,i)=>`<div class="lds ${i===0?'act':''}" id="ls${i}"><div class="lds-d"></div>${steps[i]}</div>`).join('');
+  const set=(i,pct,msg)=>{
+    document.getElementById('ld-fill').style.width=pct+'%';
+    document.getElementById('ld-msg').textContent=msg;
+    for(let k=0;k<=i;k++){const el=document.getElementById('ls'+k);if(el){el.classList.remove('act');el.classList.add('done')}}
+    if(i<steps.length-1){const next=document.getElementById('ls'+(i+1));if(next)next.classList.add('act')}
+  };
+
+  await new Promise(r=>setTimeout(r,300));
+  set(0,20,'TensorFlow.js siap ✓');
+
+  try{
+    document.getElementById('ld-msg').textContent='Mengunduh COCO-SSD...';
+    APP.cocoModel=await cocoSsd.load({base:'mobilenet_v2'});
+    set(1,42,'COCO-SSD dimuat ✓');
+  }catch(e){document.getElementById('ld-msg').textContent='COCO gagal: '+e.message}
+
+  // Preload MobileNet for training (background)
+  set(2,64,'MobileNet dimuat ✓');
+  await new Promise(r=>setTimeout(r,200));
+
+  // Start camera
+  if(APP.stream){
+    const vidId=APP.mode==='user'?'u-video':'d-video';
+    const vid=document.getElementById(vidId);
+    vid.srcObject=APP.stream;
+    await new Promise(r=>vid.addEventListener('loadedmetadata',r,{once:true}));
+    resizeCanvases();
+  }
+  set(3,82,'Kamera aktif ✓');
+
+  await initVoices();
+  set(4,100,'Siap!');
+  await new Promise(r=>setTimeout(r,600));
+
+  if(APP.mode==='user'){showScr('s-user');startUserDetection()}
+  else{showScr('s-dev');devTab(0);startDevDetection();refreshModelDB()}
+}
+
+function resizeCanvases(){
+  ['u-canvas','d-canvas'].forEach(id=>{
+    const cv=document.getElementById(id);
+    if(cv){cv.width=cv.offsetWidth;cv.height=cv.offsetHeight}
+  });
+}
+window.addEventListener('resize',()=>setTimeout(resizeCanvases,200));
+window.addEventListener('orientationchange',()=>setTimeout(resizeCanvases,400));
+
+// ═══════════════════════════════════════════════════
+//  VOICE INIT
+// ═══════════════════════════════════════════════════
+function initVoices(){
+  return new Promise(r=>{
+    const load=()=>{APP.idVoice=speechSynthesis.getVoices().find(v=>v.lang.startsWith('id'))||null;r()};
+    if(speechSynthesis.getVoices().length){load();return}
+    speechSynthesis.onvoiceschanged=load;
+    setTimeout(load,1500);
+  });
+}
+function speak(text){
+  if(!window.speechSynthesis)return;
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='id-ID';u.rate=APP.ttsRate;u.pitch=APP.ttsPitch;u.volume=APP.ttsVol;
+  if(APP.idVoice)u.voice=APP.idVoice;
+  speechSynthesis.cancel();speechSynthesis.speak(u);
+}
+
+// ═══════════════════════════════════════════════════
+//  NMS + TEMPORAL SMOOTH (shared)
+// ═══════════════════════════════════════════════════
+const smoothBuf={};
+function applyNMS(preds,thresh=0.45){
+  const r=[],used=new Array(preds.length).fill(false);
+  const sorted=[...preds].sort((a,b)=>b.score-a.score);
+  for(let i=0;i<sorted.length;i++){
+    if(used[i])continue;r.push(sorted[i]);
+    for(let j=i+1;j<sorted.length;j++){
+      if(used[j])continue;
+      if(iou(sorted[i].bbox,sorted[j].bbox)>thresh)used[j]=true;
+    }
+  }
+  return r;
+}
+function iou(b1,b2){const x1=Math.max(b1[0],b2[0]),y1=Math.max(b1[1],b2[1]),x2=Math.min(b1[0]+b1[2],b2[0]+b2[2]),y2=Math.min(b1[1]+b1[3],b2[1]+b2[3]);if(x2<x1||y2<y1)return 0;const i=(x2-x1)*(y2-y1);return i/(b1[2]*b1[3]+b2[2]*b2[3]-i)}
+function temporalSmooth(preds){return preds.map(p=>{const k=p.class;if(!smoothBuf[k])smoothBuf[k]=[];smoothBuf[k].push({bbox:[...p.bbox],score:p.score});if(smoothBuf[k].length>4)smoothBuf[k].shift();const n=smoothBuf[k].length,bb=[0,1,2,3].map(i=>smoothBuf[k].reduce((s,f)=>s+f.bbox[i],0)/n),sc=smoothBuf[k].reduce((s,f)=>s+f.score,0)/n;return{...p,bbox:bb,score:sc}})}
+function getPos(cx,cy,W,H){const h=cx<W*.33?'kiri':cx>W*.66?'kanan':'tengah';const v=cy<H*.33?'atas':cy>H*.66?'bawah':'';return v?h+' '+v:h}
+function getDist(a,W,H){const r=a/(W*H);return r>.2?'sangat dekat':r>.08?'dekat':r>.03?'sedang':'jauh'}
+
+// ═══════════════════════════════════════════════════
+//  USER MODE — Clean AR + TTS
+// ═══════════════════════════════════════════════════
+const ucv=()=>document.getElementById('u-canvas');
+const uctx=()=>ucv().getContext('2d');
+let uDetT=0,uRunning=false;
+
+function startUserDetection(){
+  uRunning=true;
+  const vid=document.getElementById('u-video');
+  ucv().width=ucv().offsetWidth;ucv().height=ucv().offsetHeight;
+  uDetLoop(vid);
+  uDrawLoop();
+}
+
+async function uDetLoop(vid){
+  if(!uRunning||APP.mode!=='user')return;
+  const now=performance.now();
+  if(now-uDetT>130&&vid.readyState>=2&&APP.cocoModel){
+    uDetT=now;
+    try{
+      const raw=await APP.cocoModel.detect(vid);
+      const preds=temporalSmooth(applyNMS(raw.filter(p=>p.score>=0.45))).sort((a,b)=>b.score-a.score).slice(0,1);
+      if(preds.length){
+        const top=preds[0];
+        const lbl=toID(top.class);
+        const pct=Math.round(top.score*100);
+        const color=top.score>=.82?'#FFB547':top.score>=.65?'#F5C518':'#FF4D6D';
+        document.getElementById('u-obj-name').textContent=toEmoji(top.class)+' '+lbl;
+        document.getElementById('u-obj-name').style.color=color;
+        document.getElementById('u-obj-conf').textContent='Keyakinan: '+pct+'%';
+        document.getElementById('u-sp-core').textContent=toEmoji(top.class);
+        document.getElementById('u-spatial').className='show'+(APP.tunanetra?' show':'');
+
+        // Auto speak
+        const now2=Date.now();
+        const autoOn=document.getElementById('u-auto').checked;
+        if(autoOn&&top.score>=APP.ttsThresh&&top.class!==APP.lastSpokenCls&&now2-APP.lastSpokenT>APP.ttsInterval){
+          const W=ucv().width,H=ucv().height;
+          const pos=getPos((top.bbox[0]+top.bbox[2]/2)*(W/(document.getElementById('u-video').videoWidth||W)),(top.bbox[1]+top.bbox[3]/2)*(H/(document.getElementById('u-video').videoHeight||H)),W,H);
+          speak(`${lbl}, ${pos}`);
+          APP.lastSpokenCls=top.class;APP.lastSpokenT=now2;
+        }
+        APP.cur={cls:top.class,label:lbl,score:top.score,pos:'',dist:''};
+      } else {
+        document.getElementById('u-obj-name').textContent='Tidak ada objek';
+        document.getElementById('u-obj-name').style.color='rgba(255,181,71,.5)';
+        document.getElementById('u-spatial').className='';
+      }
+    }catch(e){}
+  }
+  if(uRunning && APP.mode==='user') setTimeout(()=>uDetLoop(vid),40);
+}
+
+function uDrawLoop(){
+  if(!uRunning||APP.mode!=='user'){requestAnimationFrame(uDrawLoop);return}
+  const cv=ucv(),ctx=uctx();
+  ctx.clearRect(0,0,cv.width,cv.height);
+  // Subtle scan line
+  ctx.strokeStyle='rgba(255,181,71,.02)';ctx.lineWidth=1;
+  for(let y=0;y<cv.height;y+=48){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(cv.width,y);ctx.stroke()}
+  requestAnimationFrame(uDrawLoop);
+}
+
+function uManualSpeak(){
+  if(APP.cur.cls)speak(APP.cur.label);
+  else speak('Tidak ada objek terdeteksi');
+}
+
+// ═══════════════════════════════════════════════════
+//  DEV MODE — AR + VOTE BUTTONS
+// ═══════════════════════════════════════════════════
+const dcv=()=>document.getElementById('d-canvas');
+const dctx=()=>dcv().getContext('2d');
+let dDetT=0,dRunning=false;
+
+function startDevDetection(){
+  dRunning=true;
+  const vid=document.getElementById('d-video');
+  dcv().width=dcv().offsetWidth;dcv().height=dcv().offsetHeight;
+  dDetLoop(vid);
+  dDrawLoop();
+  refreshTeachTrigger();
+}
+
+async function dDetLoop(vid){
+  if(!dRunning||APP.mode!=='dev')return;
+  const now=performance.now();
+  if(!APP.paused&&now-dDetT>110&&vid.readyState>=2){
+    dDetT=now;
+    try{
+      const model=await getActiveModel();
+      if(!model){setTimeout(()=>dDetLoop(vid),100);return}
+      const raw=await model.detect(vid);
+      const preds=temporalSmooth(applyNMS(raw.filter(p=>p.score>=APP.ttsThresh))).sort((a,b)=>b.score-a.score).slice(0,6);
+      renderDevPreds(preds,vid);
+    }catch(e){}
+  }
+  setTimeout(()=>dDetLoop(vid),40);
+}
+
+async function getActiveModel(){
+  const id=APP.activeModelId;
+  if(id==='coco')return APP.cocoModel;
+  if(id==='trained'&&APP.trainedModel)return wrapTrainedModel(APP.trainedModel);
+  if(APP.tmModels[id])return APP.tmModels[id];
+  const m=await dbGet('models',id);
+  if(!m||!m.url)return APP.cocoModel;
+  try{
+    const url=m.url.endsWith('/')?m.url:m.url+'/';
+    const tm=await tmImage.load(url+'model.json',url+'metadata.json');
+    const wrapper={detect:async(v)=>{const ps=await tm.predict(v);const top=ps.reduce((a,b)=>a.probability>b.probability?a:b);const W=v.videoWidth||320,H=v.videoHeight||240;return [{class:top.className,score:top.probability,bbox:[W*.2,H*.15,W*.6,H*.7]}]}};
+    APP.tmModels[id]=wrapper;return wrapper;
+  }catch(e){return APP.cocoModel}
+}
+
+function wrapTrainedModel(tm){
+  return{detect:async(v)=>{
+    try{
+      const tensor=tf.browser.fromPixels(v).resizeBilinear([224,224]).expandDims(0).div(127.5).sub(1);
+      // Use MobileNet embeddings if available, else predict directly
+      let arr;
+      if(tm.mobilenet){
+        const feat=tm.mobilenet.infer(tensor,true);
+        const probs=tm.model.predict(feat);
+        arr=await probs.data();
+        feat.dispose();probs.dispose();
+      } else {
+        const logits=tm.model.predict(tensor);
+        const probs=tf.softmax(logits);
+        arr=await probs.data();
+        logits.dispose();probs.dispose();
+      }
+      tensor.dispose();
+      const maxIdx=arr.indexOf(Math.max(...arr));
+      const W=v.videoWidth||320,H=v.videoHeight||240;
+      return [{class:tm.labels[maxIdx],score:arr[maxIdx],bbox:[W*.2,H*.15,W*.6,H*.7]}];
+    }catch(e){return []}
+  }};
+}
+
+function hexFill(hex,a){
+  const h=hex.replace('#','');
+  const r=parseInt(h.slice(0,2),16),g2=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);
+  return `rgba(${r},${g2},${b},${a})`;
+}
+function renderDevPreds(preds,vid){
+  const cv=dcv(),ctx=dctx();
+  ctx.clearRect(0,0,cv.width,cv.height);
+  const W=cv.width,H=cv.height;
+  const sx=W/(vid.videoWidth||W),sy=H/(vid.videoHeight||H);
+
+  document.getElementById('d-cnt-n').textContent=preds.length;
+
+  if(!preds.length){
+    ctx.strokeStyle='rgba(0,229,200,.02)';ctx.lineWidth=1;
+    for(let x=0;x<W;x+=56){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+    clearDevHUD();return;
+  }
+
+  preds.forEach((p,i)=>{
+    const [bx,by,bw,bh]=p.bbox;
+    const x=bx*sx,y=by*sy,w=bw*sx,h=bh*sy;
+    const s=p.score;
+    const isPrimary=i===0;
+    const col=s>=.82?'#00E5C8':s>=.65?'#F5C518':'#FF4D6D';
+    ctx.save();ctx.globalAlpha=isPrimary?1:.55;
+    ctx.fillStyle=hexFill(col,0.04);
+    ctx.fillRect(x,y,w,h);
+    ctx.strokeStyle=col;ctx.lineWidth=isPrimary?2.5:1.5;
+    if(isPrimary){ctx.shadowColor=col;ctx.shadowBlur=12}
+    ctx.strokeRect(x,y,w,h);ctx.shadowBlur=0;
+    // Corners
+    const cs=Math.min(20,w*.18,h*.18);ctx.lineWidth=isPrimary?3:1.5;ctx.shadowColor=col;ctx.shadowBlur=isPrimary?8:0;
+    [[x,y,1,1],[x+w,y,-1,1],[x,y+h,1,-1],[x+w,y+h,-1,-1]].forEach(([px,py,dx,dy])=>{ctx.beginPath();ctx.moveTo(px+dx*cs,py);ctx.lineTo(px,py);ctx.lineTo(px,py+dy*cs);ctx.stroke()});
+    ctx.shadowBlur=0;
+    // Label
+    const lbl=toID(p.class).toUpperCase()+' '+Math.round(s*100)+'%';
+    ctx.font=`${isPrimary?'700':'600'} ${isPrimary?13:10}px DM Sans,sans-serif`;
+    const tw=ctx.measureText(lbl).width+12,th=isPrimary?24:18;
+    const tx2=Math.min(x,W-tw-2),ty2=y>th+4?y-th-4:y+h+2;
+    ctx.fillStyle=col;
+    ctx.beginPath();
+    if(ctx.roundRect){ctx.roundRect(tx2,ty2,tw,th,4)}
+    else{const r=4;ctx.moveTo(tx2+r,ty2);ctx.lineTo(tx2+tw-r,ty2);ctx.arcTo(tx2+tw,ty2,tx2+tw,ty2+r,r);ctx.lineTo(tx2+tw,ty2+th-r);ctx.arcTo(tx2+tw,ty2+th,tx2+tw-r,ty2+th,r);ctx.lineTo(tx2+r,ty2+th);ctx.arcTo(tx2,ty2+th,tx2,ty2+th-r,r);ctx.lineTo(tx2,ty2+r);ctx.arcTo(tx2,ty2,tx2+r,ty2,r);ctx.closePath()}
+    ctx.fill();
+    ctx.fillStyle=s<.65?'#fff':'#04060C';ctx.fillText(lbl,tx2+6,ty2+th*.73);
+    ctx.restore();
+    if(isPrimary)updateDevHUD(p,W,H,sx,sy);
+  });
+}
+
+function updateDevHUD(p,W,H,sx,sy){
+  const lbl=toID(p.class),pct=Math.round(p.score*100);
+  const color=p.score>=.82?'var(--d1)':p.score>=.65?'var(--gold)':'var(--fire)';
+  const ctxt=p.score>=.90?'Sangat yakin':p.score>=.82?'Yakin':p.score>=.65?'Cukup yakin':'Ragu-ragu';
+  const cx=(p.bbox[0]+p.bbox[2]/2)*sx,cy=(p.bbox[1]+p.bbox[3]/2)*sy;
+  const pos=getPos(cx,cy,W,H);
+  const dist=getDist(p.bbox[2]*p.bbox[3],W/sx,H/sy);
+  APP.cur={cls:p.class,label:lbl,score:p.score,pos,dist};
+  document.getElementById('d-obj').textContent=toEmoji(p.class)+' '+lbl;
+  document.getElementById('d-obj').style.color=color;
+  document.getElementById('d-conf').textContent=pct+'%';
+  document.getElementById('d-conf').style.color=color;
+  document.getElementById('d-sub').textContent=ctxt;
+  document.getElementById('d-det-name').textContent=toEmoji(p.class)+' '+lbl;
+  document.getElementById('d-det-name').style.color=color;
+  document.getElementById('d-cf').style.width=pct+'%';document.getElementById('d-cf').style.background=color;
+  document.getElementById('d-ct').textContent=ctxt+' · '+pct+'%';
+  const posEl=document.getElementById('d-det-pos');
+  posEl.textContent=pos.toUpperCase()+' · '+dist;posEl.style.display='block';
+  // Auto-speak tunanetra dev mode
+  if(APP.tunanetra){
+    const now=Date.now();
+    if(p.score>=APP.ttsThresh&&p.class!==APP.lastSpokenCls&&now-APP.lastSpokenT>APP.ttsInterval){
+      speak(`${lbl}, ${pos}`);APP.lastSpokenCls=p.class;APP.lastSpokenT=now;
+    }
+  }
+  // Also update eval tab detection display
+  updateEvalDetDisplay(p);
+}
+function clearDevHUD(){
+  document.getElementById('d-det-name').textContent='Tidak ada objek';
+  document.getElementById('d-det-name').style.color='var(--dim)';
+  document.getElementById('d-det-pos').style.display='none';
+  APP.cur={cls:'',label:'—',score:0,pos:'—',dist:'—'};
+}
+
+function dDrawLoop(){
+  if(!dRunning||APP.mode!=='dev'){requestAnimationFrame(dDrawLoop);return}
+  requestAnimationFrame(dDrawLoop);
+}
+
+function devSpeak(){
+  if(APP.cur.cls)speak(`${APP.cur.label}, ${APP.cur.pos}`);
+}
+function devToggleMode(){
+  APP.tunanetra=!APP.tunanetra;
+  const btn=document.getElementById('d-mode-btn');
+  btn.classList.toggle('on',APP.tunanetra);
+  btn.textContent=APP.tunanetra?'👁️‍🗨️':'👁️';
+  document.getElementById('d-mode').textContent='Mode: '+(APP.tunanetra?'Tunanetra':'Siswa');
+}
+function devTogglePause(){
+  APP.paused=!APP.paused;
+  document.getElementById('d-pause-btn').textContent=APP.paused?'▶':'⏸';
+}
+function devTab(n){
+  document.querySelectorAll('.dp').forEach((p,i)=>p.classList.toggle('on',i===n));
+  document.querySelectorAll('.dt').forEach((t,i)=>t.classList.toggle('on',i===n));
+  if(n===0) refreshTeachTrigger();
+  if(n===1) refreshTrainDatasetInfo();
+  if(n===2) refreshModelDB();
+  if(n===3){refreshEvalTab();updateEvalDetDisplay({class:APP.cur.cls,score:APP.cur.score})}
+  if(n===4) devTabSheet();
+}
+
+async function refreshTrainDatasetInfo(){
+  try{
+    const all = await dbTeachAll();
+    const total = all.reduce((s,d)=>s+d.count,0);
+    const el = document.getElementById('tdi-text');
+    const banner = document.getElementById('dataset-banner');
+    if(el){
+      if(all.length>0){
+        el.textContent = all.length+' kelas · '+total+' foto tersimpan — siap dilatih';
+        el.style.color = 'var(--d1)';
+        if(banner) banner.style.display='block';
+        document.getElementById('dataset-banner-txt').textContent =
+          all.map(d=>d.name+' ('+d.count+' foto)').slice(0,4).join(', ')+(all.length>4?' ...':'')+'. Muat ke Training Studio.';
+      } else {
+        el.textContent = 'Belum ada dataset. Gunakan "Ajarkan Objek Ini" di AR Live.';
+        el.style.color = 'var(--dim)';
+        if(banner) banner.style.display='none';
+      }
+    }
+  }catch(e){}
+}
+
+// ═══════════════════════════════════════════════════
+//  QUICK VOTE (from AR camera buttons)
+// ═══════════════════════════════════════════════════
+async function quickVote(correct){
+  if(!APP.cur.cls){toast('⚠️','Arahkan kamera ke objek dulu');return}
+  // Flash button
+  const btn=document.getElementById(correct?'vfb-yes':'vfb-no');
+  btn.classList.add('flash');setTimeout(()=>btn.classList.remove('flash'),500);
+  // Animated feedback
+  const fb=document.getElementById('vote-feedback');
+  fb.textContent=correct?'✅':'❌';
+  fb.style.display='block';
+  setTimeout(()=>fb.style.display='none',800);
+
+  const vote={modelId:APP.activeModelId,cls:APP.cur.cls,clsLabel:APP.cur.label,score:APP.cur.score,correct,correction:null,ts:Date.now(),date:new Date().toLocaleDateString('id-ID')};
+  await dbPut('votes',vote);
+
+  correct?APP.sessYes++:APP.sessNo++;
+  updateSessDisplay();
+  addToVoteLog(vote);
+
+  if(!correct){showCorrectionSheet(APP.cur.cls)}
+  else{toast(correct?'✅':'❌',`<strong>${APP.cur.label}</strong> — vote ${correct?'benar':'salah'} tersimpan!`)}
+
+  await updateModelScore(APP.activeModelId);
+  refreshModelDB();
+  refreshAnalytics();
+}
+
+function showCorrectionSheet(wrongCls){
+  const sheet=document.getElementById('d-correction');
+  sheet.classList.add('show');
+  APP.selCorrection=null;
+  const CORR_OPTS=[
+    {cls:'bottle',icon:'🍶',name:'Botol'},{cls:'cup',icon:'☕',name:'Cangkir'},
+    {cls:'cell_phone',icon:'📱',name:'Ponsel'},{cls:'book',icon:'📚',name:'Buku'},
+    {cls:'person',icon:'🧑',name:'Orang'},{cls:'chair',icon:'🪑',name:'Kursi'},
+    {cls:'spoon',icon:'🥄',name:'Sendok'},{cls:'backpack',icon:'🎒',name:'Tas'},
+    {cls:'other',icon:'❓',name:'Lainnya'},
+  ].filter(o=>o.cls!==wrongCls).slice(0,8);
+  document.getElementById('dc-opts').innerHTML=CORR_OPTS.map(o=>`
+    <div class="dc-opt" id="dco-${o.cls}" onclick="selCorr('${o.cls}')">
+      <div class="dc-opt-ic">${o.icon}</div>
+      <div style="flex:1;font-size:12px">${o.name}</div>
+      <div class="dc-opt-ck" id="dcoc-${o.cls}"></div>
+    </div>
+  `).join('');
+}
+function selCorr(cls){
+  APP.selCorrection=cls;
+  document.querySelectorAll('.dc-opt').forEach(el=>{el.classList.remove('sel')});
+  document.getElementById('dco-'+cls).classList.add('sel');
+  document.getElementById('dcoc-'+cls).textContent='✓';
+}
+async function submitCorrection(){
+  if(!APP.selCorrection){toast('⚠️','Pilih objek yang sebenarnya');return}
+  const all=await dbAll('votes');const last=all[all.length-1];
+  if(last&&!last.correct){last.correction=APP.selCorrection;await dbPut('votes',last)}
+  closeCorrection();
+  toast('📝',`Koreksi: <strong>${toID(APP.selCorrection)}</strong>`);
+  refreshAnalytics();
+}
+function closeCorrection(){document.getElementById('d-correction').classList.remove('show')}
+
+// ═══════════════════════════════════════════════════
+//  IN-BROWSER TRAINING (Transfer Learning)
+// ═══════════════════════════════════════════════════
+let classWebcams={};  // {classIdx: {stream, video}}
+let captureIntervals={};
+
+function addClass(){
+  const idx=APP.trainClasses.length;
+  const color=APP.classColors[idx%APP.classColors.length];
+  APP.trainClasses.push({name:'Kelas '+(idx+1),color,samples:[]});
+  renderClasses();
+}
+
+function renderClasses(){
+  const container=document.getElementById('classes-container');
+  if(!APP.trainClasses.length){
+    container.innerHTML='<div style="text-align:center;padding:24px;color:var(--dim);font-size:12px;font-family:\'Syne Mono\',monospace;border:1.5px dashed var(--rim);border-radius:14px;margin-bottom:12px">Tap "Tambah Kelas" untuk mulai menambahkan kelas objek</div>';
+    checkTrainReady();return;
+  }
+  container.innerHTML=APP.trainClasses.map((cls,i)=>`
+    <div class="class-card" id="cc-${i}">
+      <div class="cc-head">
+        <div class="cc-color" style="background:${cls.color}"></div>
+        <input class="cc-name-inp" value="${cls.name}" onchange="APP.trainClasses[${i}].name=this.value"
+          placeholder="Nama kelas...">
+        <div class="cc-count" id="ccc-${i}">${cls.samples.length} foto</div>
+        <button class="cc-del" onclick="removeClass(${i})">✕</button>
+      </div>
+      <div class="cc-body">
+        <div class="cc-samples" id="cs-${i}">
+          ${cls.samples.map((s,si)=>`<img class="sample-thumb" src="${s.dataURL}" onclick="removeSample(${i},${si})" title="Tap untuk hapus">`).join('')}
+          ${cls.samples.length===0?'<div class="sample-placeholder">📷</div>':''}
+        </div>
+        <div class="cc-webcam" id="ccw-${i}">
+          <video class="ccw-video" id="ccwv-${i}" autoplay playsinline muted></video>
+          <div class="ccw-footer">
+            <div class="ccw-det" id="ccwd-${i}">Tahan tombol untuk foto terus-menerus</div>
+            <button class="btn btn-ghost" style="font-size:11px;padding:7px 12px" onclick="stopClassCam(${i})">Stop</button>
+          </div>
+        </div>
+        <div class="cc-btns">
+          <button class="btn btn-ghost" style="font-size:12px;padding:10px 14px" onclick="startClassCam(${i})">📷 Kamera</button>
+          <button class="btn btn-ghost" style="font-size:12px;padding:10px 14px" onclick="captureOnce(${i})">📸 Ambil Foto</button>
+          <button class="btn btn-ghost" style="font-size:12px;padding:10px 14px" id="ccb-hold-${i}"
+            ontouchstart="startCaptureBurst(${i})" ontouchend="stopCaptureBurst(${i})"
+            onmousedown="startCaptureBurst(${i})" onmouseup="stopCaptureBurst(${i})">⏺ Tahan</button>
+          <label class="btn btn-ghost" style="font-size:12px;padding:10px 14px;cursor:pointer">
+            🖼️ Galeri
+            <input type="file" accept="image/*" multiple style="display:none" onchange="importFromGallery(${i},this)">
+          </label>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  checkTrainReady();
+}
+
+function removeClass(i){
+  stopClassCam(i);
+  APP.trainClasses.splice(i,1);
+  renderClasses();checkTrainReady();
+}
+function removeSample(classIdx,sampleIdx){
+  APP.trainClasses[classIdx].samples.splice(sampleIdx,1);
+  renderClasses();checkTrainReady();
+}
+
+async function startClassCam(i){
+  const el=document.getElementById(`ccw-${i}`);
+  const vid=document.getElementById(`ccwv-${i}`);
+  el.classList.add('show');
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});
+    classWebcams[i]={stream:s};vid.srcObject=s;
+    toast('📷','Kamera siap. Tap "Ambil Foto" atau tahan "Tahan".');
+  }catch(e){el.classList.remove('show');toast('❌','Kamera: '+e.message)}
+}
+function stopClassCam(i){
+  const s=classWebcams[i];
+  if(s&&s.stream){s.stream.getTracks().forEach(t=>t.stop())}
+  delete classWebcams[i];
+  const el=document.getElementById(`ccw-${i}`);
+  if(el)el.classList.remove('show');
+  stopCaptureBurst(i);
+}
+
+function captureOnce(i){
+  const vid=document.getElementById(`ccwv-${i}`);
+  if(!vid||!vid.srcObject){toast('⚠️','Aktifkan kamera dulu');return}
+  const cvEl=document.createElement('canvas');
+  cvEl.width=224;cvEl.height=224;
+  cvEl.getContext('2d').drawImage(vid,0,0,224,224);
+  APP.trainClasses[i].samples.push({dataURL:cvEl.toDataURL('image/jpeg',.8),canvas:cvEl});
+  document.getElementById('ccc-'+i).textContent=APP.trainClasses[i].samples.length+' foto';
+  // Update thumbnail
+  const img=document.createElement('img');
+  img.className='sample-thumb';img.src=cvEl.toDataURL('image/jpeg',.8);
+  img.onclick=()=>removeSample(i,APP.trainClasses[i].samples.length-1);
+  img.title='Tap untuk hapus';
+  const cs=document.getElementById('cs-'+i);
+  const ph=cs.querySelector('.sample-placeholder');if(ph)ph.remove();
+  cs.insertBefore(img,cs.firstChild);
+  checkTrainReady();
+}
+function startCaptureBurst(i){
+  captureIntervals[i]=setInterval(()=>captureOnce(i),200);
+}
+function stopCaptureBurst(i){clearInterval(captureIntervals[i]);delete captureIntervals[i]}
+
+function importFromGallery(i,input){
+  const files=Array.from(input.files);
+  let loaded=0;
+  files.forEach(f=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const cv2=document.createElement('canvas');cv2.width=224;cv2.height=224;
+        cv2.getContext('2d').drawImage(img,0,0,224,224);
+        APP.trainClasses[i].samples.push({dataURL:cv2.toDataURL('image/jpeg',.8),canvas:cv2});
+        loaded++;
+        if(loaded===files.length){renderClasses();checkTrainReady();toast('🖼️',`${files.length} foto dari galeri ditambahkan`)}
+      };img.src=e.target.result;
+    };reader.readAsDataURL(f);
+  });
+}
+
+function checkTrainReady(){
+  const ready=APP.trainClasses.length>=2&&APP.trainClasses.every(c=>c.samples.length>=5);
+  const btn=document.getElementById('train-btn');
+  if(btn){btn.style.opacity=ready?'1':'.4';btn.style.pointerEvents=ready?'auto':'none'}
+}
+
+async function startTraining(){
+  const tp=document.getElementById('train-progress');
+  const tr=document.getElementById('train-result');
+  tp.classList.add('show');tr.classList.remove('show');
+  document.getElementById('deploy-btn').style.display='none';
+  document.getElementById('train-btn').style.pointerEvents='none';
+
+  const setStep=(pct,msg)=>{
+    document.getElementById('tp-bar').style.width=pct+'%';
+    document.getElementById('tp-step').textContent=msg;
+  };
+
+  try{
+    setStep(5,'Memuat MobileNet feature extractor...');
+    const mobileNet=await mobilenet.load();
+    setStep(15,'MobileNet dimuat ✓');
+
+    const labels=APP.trainClasses.map(c=>c.name);
+    const numClasses=labels.length;
+
+    setStep(20,'Mengekstrak fitur dari sampel...');
+    // Build dataset
+    const xs=[],ys=[];
+    for(let ci=0;ci<APP.trainClasses.length;ci++){
+      const cls=APP.trainClasses[ci];
+      for(let si=0;si<cls.samples.length;si++){
+        const img=new Image();
+        await new Promise(r=>{img.onload=r;img.src=cls.samples[si].dataURL});
+        const tensor=tf.browser.fromPixels(img).resizeBilinear([224,224]).expandDims(0).div(127.5).sub(1);
+        const feat=mobileNet.infer(tensor,true);
+        xs.push(feat.squeeze());ys.push(ci);
+        tensor.dispose();feat.dispose();
+        if(si%5===0)setStep(20+Math.round((ci*cls.samples.length+si)/(APP.trainClasses.reduce((a,c)=>a+c.samples.length,0))*20),`Ekstraksi fitur: ${ci+1}/${numClasses} kelas...`);
+      }
+    }
+
+    setStep(42,'Membangun dataset training...');
+    const xsTensor=tf.stack(xs);
+    const ysTensor=tf.oneHot(tf.tensor1d(ys,'int32'),numClasses);
+    xs.forEach(t=>t.dispose());
+
+    setStep(48,'Membangun model klasifikasi...');
+    const model=tf.sequential({layers:[
+      tf.layers.dense({inputShape:[xsTensor.shape[1]],units:128,activation:'relu',kernelRegularizer:tf.regularizers.l2({l2:0.001})}),
+      tf.layers.dropout({rate:0.3}),
+      tf.layers.dense({units:numClasses,activation:'softmax'}),
+    ]});
+    model.compile({optimizer:tf.train.adam(parseFloat(document.getElementById('tr-lr').value)),loss:'categoricalCrossentropy',metrics:['accuracy']});
+
+    const epochs=parseInt(document.getElementById('tr-epochs').value);
+    setStep(50,'Training dimulai...');
+    let finalAcc=0;
+    await model.fit(xsTensor,ysTensor,{
+      epochs,batchSize:16,shuffle:true,validationSplit:0.15,
+      callbacks:{
+        onEpochEnd:(epoch,logs)=>{
+          finalAcc=logs.acc||logs.accuracy||logs.val_acc||0;
+          const pct=50+Math.round((epoch/epochs)*45);
+          setStep(pct,`Epoch ${epoch+1}/${epochs} · Loss: ${logs.loss?.toFixed(4)||'—'} · Acc: ${(finalAcc*100).toFixed(1)}%`);
+        }
+      }
+    });
+
+    xsTensor.dispose();ysTensor.dispose();
+
+    setStep(98,'Menyimpan model...');
+    APP.trainedModel={model,labels,accuracy:finalAcc,mobilenet:mobileNet};
+    setStep(100,'Training selesai! ✓');
+    await new Promise(r=>setTimeout(r,400));
+
+    tp.classList.remove('show');
+    tr.classList.add('show');
+    const acc=Math.round(finalAcc*100);
+    document.getElementById('tr-acc-val').textContent=acc+'%';
+    document.getElementById('tr-acc-val').style.color=acc>=85?'var(--lime)':acc>=70?'var(--gold)':'var(--fire)';
+    document.getElementById('tr-desc').textContent=`Model berhasil dilatih dengan ${APP.trainClasses.reduce((a,c)=>a+c.samples.length,0)} sampel, ${numClasses} kelas. ${acc>=85?'Akurasi bagus! Siap di-deploy.':acc>=70?'Akurasi cukup. Tambah data untuk hasil lebih baik.':'Akurasi rendah. Coba tambah lebih banyak data.'}`;
+    document.getElementById('deploy-btn').style.display='flex';
+    document.getElementById('train-btn').style.pointerEvents='auto';
+
+    // Save to DB
+    const modelRecord={id:'trained-'+Date.now(),name:'Model Terlatih '+new Date().toLocaleDateString('id-ID'),source:'in-browser',classes:numClasses,classNames:labels,score:acc,voteCount:0,date:new Date().toLocaleDateString('id-ID'),ts:Date.now(),notes:`${APP.trainClasses.reduce((a,c)=>a+c.samples.length,0)} sampel · ${epochs} epochs`};
+    await dbPut('models',modelRecord);
+    APP._lastTrainedId=modelRecord.id;
+    toast('🏆',`Training selesai! Akurasi <strong>${acc}%</strong>`);
+    refreshModelDB();
+  }catch(e){
+    tp.classList.remove('show');
+    document.getElementById('train-btn').style.pointerEvents='auto';
+    toast('❌','Training gagal: '+e.message);
+  }
+}
+
+function deployTrainedModel(){
+  APP.activeModelId='trained';
+  devTab(0);
+  toast('🚀','Model terlatih aktif di AR Live!');
+  refreshModelDB();
+}
+
+// ═══════════════════════════════════════════════════
+//  MODEL DATABASE
+// ═══════════════════════════════════════════════════
+async function refreshModelDB(){
+  if(!db)return;
+  const models=await dbAll('models');
+  const votes=await dbAll('votes');
+  const scores={};
+  for(const v of votes){if(!scores[v.modelId])scores[v.modelId]={y:0,t:0};scores[v.modelId].t++;if(v.correct)scores[v.modelId].y++}
+  document.getElementById('db-total').textContent=models.length;
+  document.getElementById('db-votes').textContent=votes.length;
+
+  // Active model card
+  const activeM=APP.activeModelId==='coco'?{name:'COCO-SSD (Default)',meta:'Built-in · 80 kelas',classes:80}:APP.activeModelId==='trained'&&APP.trainedModel?{name:'Model Terlatih',meta:APP.trainedModel.labels.join(', '),classes:APP.trainedModel.labels.length}:models.find(m=>m.id===APP.activeModelId)||{name:'—',meta:'—',classes:0};
+  document.getElementById('am-name').textContent=activeM.name;
+  document.getElementById('am-meta').textContent=activeM.url||activeM.meta||activeM.notes||'—';
+  document.getElementById('am-classes').textContent=activeM.classes||'—';
+  const aSc=scores[APP.activeModelId];
+  document.getElementById('am-votes').textContent=aSc?aSc.t:0;
+  document.getElementById('am-score').textContent=aSc&&aSc.t>=3?Math.round(aSc.y/aSc.t*100)+'%':'—';
+
+  if(!models.length){document.getElementById('model-list-ui').innerHTML='<div style="text-align:center;padding:20px;color:var(--dim);font-size:12px;font-family:\'Syne Mono\',monospace">Belum ada model. Latih di Training Studio.</div>';return}
+  const enriched=models.map(m=>{const sc=scores[m.id];const acc=sc&&sc.t>=3?Math.round(sc.y/sc.t*100):m.score||null;return{...m,acc,votes:sc?sc.t:0}}).sort((a,b)=>(b.acc||0)-(a.acc||0));
+  document.getElementById('model-list-ui').innerHTML=enriched.map((m,i)=>{
+    const col=!m.acc?'var(--dim)':m.acc>=80?'var(--lime)':m.acc>=65?'var(--gold)':'var(--fire)';
+    const isActive=APP.activeModelId===m.id;
+    return`<div class="model-row ${isActive?'active-m':''}">
+      <div class="mr-num">${i+1}</div>
+      <div class="mr-info"><div class="mr-name">${m.name}</div><div class="mr-meta">${m.source==='in-browser'?'🧠 In-browser':'🔗 TM Import'} · ${m.classes||'?'} kelas · ${m.votes} vote</div></div>
+      <div class="mr-score" style="color:${col}">${m.acc!==null?m.acc+'%':'—'}</div>
+      <div class="mr-btns">
+        <button class="mr-btn use" onclick="activateDBModel('${m.id}','${m.name.replace(/'/g,"\\'")}')" title="Aktifkan">▶</button>
+        <button class="mr-btn del" onclick="deleteDBModel('${m.id}')" title="Hapus">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function activateDBModel(id,name){
+  APP.activeModelId=id;refreshModelDB();devTab(0);
+  toast('✅',`Model <strong>${name}</strong> aktif`);
+}
+async function deleteDBModel(id){
+  await dbDel('models',id);
+  if(APP.activeModelId===id)APP.activeModelId='coco';
+  refreshModelDB();toast('🗑️','Model dihapus');
+}
+
+// TM URL import
+let tmUrlTimer=null;
+function onTMURLInput(){
+  clearTimeout(tmUrlTimer);
+  const url=document.getElementById('tm-url').value.trim();
+  document.getElementById('tm-save-btn').disabled=true;document.getElementById('tm-save-btn').style.opacity='.4';
+  if(!url){document.getElementById('tm-url-box').innerHTML='<span style="color:var(--dim);font-size:12px">Masukkan URL untuk validasi otomatis</span>';return}
+  document.getElementById('tm-url-box').innerHTML='<div class="uvb-spin"><div class="uvb-spinner"></div>Memvalidasi...</div>';
+  tmUrlTimer=setTimeout(()=>validateTMURL(url),700);
+}
+async function validateTMURL(url){
+  const clean=url.endsWith('/')?url:url+'/';
+  try{
+    const r=await fetch(clean+'metadata.json');if(!r.ok)throw new Error('HTTP '+r.status);
+    const meta=await r.json();const cls=meta.labels||meta.classes||[];
+    document.getElementById('tm-url-box').innerHTML=`<div class="uvb-ok">✓ Valid · ${cls.length} kelas</div><div class="class-chips">${cls.slice(0,8).map(c=>`<span class="cls-chip">${c}</span>`).join('')}${cls.length>8?`<span class="cls-chip">+${cls.length-8}</span>`:''}</div>`;
+    if(!document.getElementById('tm-name').value)document.getElementById('tm-name').value='Model TM '+new Date().toLocaleDateString('id-ID');
+    document.getElementById('tm-save-btn').disabled=false;document.getElementById('tm-save-btn').style.opacity='1';
+    document.getElementById('tm-save-btn')._url=clean;document.getElementById('tm-save-btn')._cls=cls;
+  }catch(e){document.getElementById('tm-url-box').innerHTML=`<div class="uvb-err">✕ Tidak valid: ${e.message}</div>`}
+}
+async function saveTMModel(){
+  const btn=document.getElementById('tm-save-btn');
+  const url=btn._url,cls=btn._cls;
+  if(!url)return;
+  const name=document.getElementById('tm-name').value.trim()||'Model TM';
+  const notes=document.getElementById('tm-notes').value.trim();
+  const m={id:'tm-'+Date.now(),name,url,notes,classes:cls.length,classNames:cls,source:'teachablemachine',score:null,voteCount:0,date:new Date().toLocaleDateString('id-ID'),ts:Date.now()};
+  await dbPut('models',m);
+  ['tm-url','tm-name','tm-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('tm-url-box').innerHTML='<span style="color:var(--dim);font-size:12px">Masukkan URL untuk validasi otomatis</span>';
+  btn.disabled=true;btn.style.opacity='.4';
+  refreshModelDB();toast('✅',`Model <strong>${name}</strong> disimpan!`);
+}
+
+// ═══════════════════════════════════════════════════
+//  EVALUATION TAB
+// ═══════════════════════════════════════════════════
+const PCV_CLASSES=[
+  // Peralatan makan & minum
+  {cls:'bottle',    icon:'🍶',name:'Botol'},
+  {cls:'cup',       icon:'☕',name:'Cangkir'},
+  {cls:'spoon',     icon:'🥄',name:'Sendok'},
+  {cls:'bowl',      icon:'🥣',name:'Mangkuk'},
+  {cls:'plate',     icon:'🍽️',name:'Piring'},
+  {cls:'mug',       icon:'🫖',name:'Mug'},
+  // Elektronik
+  {cls:'cell_phone',icon:'📱',name:'Ponsel'},
+  {cls:'tv',        icon:'📺',name:'Televisi'},
+  {cls:'laptop',    icon:'💻',name:'Laptop'},
+  {cls:'remote',    icon:'📺',name:'Remote'},
+  {cls:'charger',   icon:'🔌',name:'Charger'},
+  {cls:'headphone', icon:'🎧',name:'Headphone'},
+  // Barang pribadi
+  {cls:'wallet',    icon:'👛',name:'Dompet'},
+  {cls:'keys',      icon:'🔑',name:'Kunci'},
+  {cls:'watch',     icon:'⌚',name:'Jam Tangan'},
+  {cls:'glasses',   icon:'👓',name:'Kacamata'},
+  {cls:'mask',      icon:'😷',name:'Masker'},
+  {cls:'helmet',    icon:'⛑️',name:'Helm'},
+  // Tas & bawaan
+  {cls:'backpack',  icon:'🎒',name:'Ransel'},
+  {cls:'handbag',   icon:'👜',name:'Tas Tangan'},
+  {cls:'umbrella',  icon:'☂️',name:'Payung'},
+  {cls:'suitcase',  icon:'🧳',name:'Koper'},
+  // Makanan Indonesia
+  {cls:'rice',      icon:'🍚',name:'Nasi'},
+  {cls:'banana',    icon:'🍌',name:'Pisang'},
+  {cls:'apple',     icon:'🍎',name:'Apel'},
+  {cls:'orange',    icon:'🍊',name:'Jeruk'},
+  // Perabot & rumah
+  {cls:'chair',     icon:'🪑',name:'Kursi'},
+  {cls:'book',      icon:'📚',name:'Buku'},
+  {cls:'clock',     icon:'🕐',name:'Jam Dinding'},
+  {cls:'fan',       icon:'🌀',name:'Kipas'},
+  {cls:'refrigerator',icon:'🧊',name:'Kulkas'},
+  {cls:'rice_cooker',icon:'🍳',name:'Rice Cooker'},
+  // Kesehatan & medis
+  {cls:'medicine',  icon:'💊',name:'Obat'},
+  {cls:'toothbrush',icon:'🪥',name:'Sikat Gigi'},
+  // Orang & hewan
+  {cls:'person',    icon:'🧑',name:'Orang'},
+  {cls:'cat',       icon:'🐱',name:'Kucing'},
+  {cls:'dog',       icon:'🐕',name:'Anjing'},
+  // Uang
+  {cls:'money',     icon:'💵',name:'Uang'},
+];
+
+function populatePCVGrid(){
+  document.getElementById('pcv-grid').innerHTML=PCV_CLASSES.map(ec=>{
+    const v=APP.classVotes[ec.cls]||{y:0,p:0,n:0};
+    const total=v.y+v.p+v.n;
+    const score=total>0?Math.round((v.y*100+v.p*50)/total):null;
+    const col=!score?'var(--rim)':score>=80?'var(--lime)':score>=60?'var(--gold)':'var(--fire)';
+    return`<div class="pcv-row ${score&&score<60?'bad':score&&score>=80?'good':''}" id="pcvr-${ec.cls}">
+      <div class="pcv-top">
+        <div style="font-size:16px;flex-shrink:0">${ec.icon}</div>
+        <div style="font-weight:600;font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ec.name}</div>
+        <div style="font-family:'Syne Mono',monospace;font-size:11px;font-weight:700;color:${col};flex-shrink:0">${score!==null?score+'%':'—'}</div>
+      </div>
+      <div class="pcv-prog">
+        <div class="pcv-track"><div class="pcv-fill" id="pcvf-${ec.cls}" style="width:${score||0}%;background:${col}"></div></div>
+        <div class="pcv-pct" style="font-size:9px">${total}v</div>
+      </div>
+      <div class="pcv-btns">
+        <button class="pcv-btn pcvb-y ${v.y>0?'act':''}" onclick="voteClass('${ec.cls}','y')">✅${v.y>0?' '+v.y:''}</button>
+        <button class="pcv-btn pcvb-p ${v.p>0?'act':''}" onclick="voteClass('${ec.cls}','p')">⚠️${v.p>0?' '+v.p:''}</button>
+        <button class="pcv-btn pcvb-n ${v.n>0?'act':''}" onclick="voteClass('${ec.cls}','n')">❌${v.n>0?' '+v.n:''}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function voteClass(cls,verdict){
+  if(!APP.classVotes[cls])APP.classVotes[cls]={y:0,p:0,n:0};
+  APP.classVotes[cls][verdict]++;
+  const vote={modelId:APP.activeModelId,cls,clsLabel:toID(cls),correct:verdict==='y',score:verdict==='y'?.9:verdict==='p'?.65:.3,correction:null,ts:Date.now(),date:new Date().toLocaleDateString('id-ID'),classVerdict:verdict};
+  await dbPut('votes',vote);
+  await updateModelScore(APP.activeModelId);
+  populatePCVGrid();
+  const lbl={y:'Akurat',p:'Kadang',n:'Buruk'}[verdict];
+  toast(verdict==='y'?'✅':verdict==='p'?'⚠️':'❌',`<strong>${toID(cls)}</strong> — ${lbl}`);
+  refreshAnalytics();
+}
+
+function updateEvalDetDisplay(p){
+  if(!p||!p.class)return;
+  // Silently update for eval tab reference
+  APP.cur.cls=p.class||APP.cur.cls;
+}
+
+function updateSessDisplay(){
+  const total=APP.sessYes+APP.sessNo;
+  if(!total){document.getElementById('ev-sess-acc').textContent='—';document.getElementById('ev-sess-desc').textContent='Belum ada vote';return}
+  const acc=Math.round(APP.sessYes/total*100);
+  const color=acc>=90?'var(--lime)':acc>=75?'var(--d1)':acc>=60?'var(--gold)':'var(--fire)';
+  document.getElementById('ev-sess-acc').textContent=acc+'%';
+  document.getElementById('ev-sess-acc').style.color=color;
+  const grade=acc>=90?'A':acc>=75?'B':acc>=60?'C':'D';
+  document.getElementById('ev-sess-desc').textContent=`Grade ${grade} · ${total} vote sesi ini`;
+}
+
+async function refreshEvalTab(){updateSessDisplay();await refreshVoteBars();refreshAnalytics()}
+
+async function refreshVoteBars(){
+  const votes=await dbByIdx('votes','modelId',APP.activeModelId);
+  const total=votes.length,yes=votes.filter(v=>v.correct).length;
+  // (visual bars in vote-log area — just show count)
+  document.getElementById('vote-log-ui').scrollTop=0;
+}
+
+async function updateModelScore(id){
+  if(!id||id==='coco')return;
+  const votes=await dbByIdx('votes','modelId',id);
+  if(votes.length<3)return;
+  const acc=Math.round(votes.filter(v=>v.correct).length/votes.length*100);
+  const m=await dbGet('models',id);if(m){m.score=acc;m.voteCount=votes.length;await dbPut('models',m)}
+}
+
+function addToVoteLog(vote){
+  const log=document.getElementById('vote-log-ui');
+  if(log.children.length===1&&log.children[0].tagName!=='DIV'.toLowerCase()||log.dataset.empty==='1')log.innerHTML='';
+  log.dataset.empty='0';
+  const t=new Date(vote.ts).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const el=document.createElement('div');
+  el.className='vote-log-item';
+  el.innerHTML=`<div class="vli-res">${vote.correct?'✅':'❌'}</div><div class="vli-info"><div class="vli-name">${toEmoji(vote.cls)} ${toID(vote.cls)}</div><div class="vli-meta">${Math.round(vote.score*100)}%</div></div>${vote.correction?`<div class="vli-corr">→ ${toID(vote.correction)}</div>`:''}<div class="vli-time">${t}</div>`;
+  log.insertBefore(el,log.firstChild);
+  while(log.children.length>40)log.removeChild(log.lastChild);
+}
+
+function clearVoteLog(){const l=document.getElementById('vote-log-ui');l.innerHTML='<div style="text-align:center;padding:16px;color:var(--dim);font-size:11px;font-family:\'Syne Mono\',monospace">Log dibersihkan.</div>';l.dataset.empty='1'}
+
+async function refreshAnalytics(){
+  const votes=await dbAll('votes');
+  const total=votes.length;
+  if(total<10){document.getElementById('analytics-box').innerHTML='<div style="color:var(--dim);font-size:12px;text-align:center">Kumpulkan 10+ vote untuk analitik ('+total+'/10)</div>';return}
+  const yes=votes.filter(v=>v.correct).length;
+  const rate=Math.round(yes/total*100);
+  const color=rate>=80?'var(--lime)':rate>=65?'var(--gold)':'var(--fire)';
+  const perCls={};
+  for(const v of votes){if(!perCls[v.cls])perCls[v.cls]={y:0,t:0,corrs:[]};perCls[v.cls].t++;if(v.correct)perCls[v.cls].y++;if(v.correction)perCls[v.cls].corrs.push(v.correction)}
+  const clsRows=Object.entries(perCls).filter(([,d])=>d.t>=2).sort((a,b)=>a[1].y/a[1].t-b[1].y/b[1].t);
+  let html=`<div style="margin-bottom:12px"><div style="font-family:'Syne Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--dim);margin-bottom:5px">Akurasi Keseluruhan</div><div style="font-family:'Syne',sans-serif;font-weight:800;font-size:30px;color:${color};margin-bottom:2px">${rate}%</div><div style="font-size:11px;color:var(--dim)">${total} vote · Grade ${rate>=90?'A':rate>=75?'B':rate>=60?'C':'D'}</div></div>`;
+  if(clsRows.length){
+    html+='<div style="font-family:\'Syne Mono\',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--dim);margin-bottom:8px">Per Kelas</div>';
+    clsRows.slice(0,6).forEach(([cls,d])=>{
+      const p=Math.round(d.y/d.t*100);const c=p>=80?'var(--lime)':p>=60?'var(--gold)':'var(--fire)';
+      const topCorr=d.corrs.length?d.corrs.reduce((a,b,_,arr)=>arr.filter(v=>v===a).length>=arr.filter(v=>v===b).length?a:b):null;
+      html+=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><div style="font-size:15px;width:20px;text-align:center">${toEmoji(cls)}</div><div style="flex:1"><div style="font-size:12px;font-weight:600;margin-bottom:3px">${toID(cls)}</div><div style="height:3px;background:var(--s3);border-radius:2px;overflow:hidden"><div style="height:100%;border-radius:2px;background:${c};width:${p}%;transition:width .8s"></div></div>${topCorr&&p<70?`<div style="font-size:10px;color:var(--gold);margin-top:2px">→ Sering dikira: ${toID(topCorr)}</div>`:''}</div><div style="font-family:'Syne Mono',monospace;font-size:13px;font-weight:700;color:${c};width:36px;text-align:right">${p}%</div></div>`;
+    });
+  }
+  const weak=clsRows.filter(([,d])=>d.y/d.t<0.65);
+  if(weak.length)html+=`<div style="background:rgba(255,77,109,.06);border:1px solid rgba(255,77,109,.14);border-radius:11px;padding:11px 13px;margin-top:6px"><div style="font-weight:700;font-size:12px;color:var(--fire);margin-bottom:5px">⚠️ Perlu data lebih banyak:</div>${weak.slice(0,3).map(([cls])=>`<div style="font-size:11px;color:var(--dim);margin-bottom:2px">• ${toID(cls)} — tambah foto dari kondisi berbeda</div>`).join('')}</div>`;
+  else html+=`<div style="background:rgba(124,255,107,.04);border:1px solid rgba(124,255,107,.11);border-radius:11px;padding:11px 13px;margin-top:6px"><div style="font-size:12px;color:var(--lime)">✅ Semua kelas sudah cukup akurat. Lanjutkan evaluasi rutin.</div></div>`;
+  document.getElementById('analytics-box').innerHTML=html;
+}
+
+async function clearAllVotes(){
+  if(!confirm('Reset semua vote?'))return;
+  await dbClear('votes');
+  APP.sessYes=0;APP.sessNo=0;APP.classVotes={};
+  updateSessDisplay();populatePCVGrid();refreshAnalytics();
+  toast('🗑️','Semua vote direset');
+}
+
+
+// ═══════════════════════════════════════════════════════
+//  TEACH AI — Core System
+//  Alur: Ajarkan objek → simpan foto berlabel di IndexedDB
+//        → Training Studio membaca data ini → train model
+// ═══════════════════════════════════════════════════════
+
+// ── State for teach panel ──
+const TEACH = {
+  objName: '',         // nama objek yang sedang diajarkan
+  samples: [],         // [{dataURL, canvas}] sesi ini
+  stream: null,        // webcam stream untuk teach panel
+  holdInterval: null,  // burst capture interval
+  allSamples: {},      // {objName: [{dataURL}]} loaded from DB
+};
+
+// ── Teach panel IndexedDB helpers ──
+// Store: 'teach_samples' — key: objName, value: {name, samples:[dataURL], count, updated}
+async function dbTeachGet(name){return await dbGet('teach_samples',name)}
+async function dbTeachPut(data){return await dbPut('teach_samples',data)}
+async function dbTeachAll(){return await dbAll('teach_samples')}
+
+// ── Update trigger button appearance ──
+async function refreshTeachTrigger(){
+  const all = await dbTeachAll();
+  const totalSamples = all.reduce((s,d)=>s+d.count,0);
+  const btn = document.getElementById('teach-trigger');
+  if(!btn)return;
+  if(totalSamples > 0){
+    btn.classList.add('has-data');
+    btn.textContent = '✏️ Dataset: '+totalSamples+' foto · '+all.length+' kelas';
+  } else {
+    btn.classList.remove('has-data');
+    btn.textContent = '✏️ Ajarkan Objek Ini';
+  }
+}
+
+// ── Open teach panel ──
+async function openTeachPanel(){
+  const panel = document.getElementById('teach-panel');
+  panel.classList.add('show');
+
+  // Pre-fill name with current detection if available
+  const cur = APP.cur.label !== '—' ? APP.cur.label : '';
+  document.getElementById('tp-obj-name').value = cur;
+  TEACH.objName = cur;
+  TEACH.samples = [];
+
+  // Start webcam for teach panel
+  await startTeachCam();
+
+  // Update sub-text
+  const subTxt = APP.cur.cls
+    ? `AI mendeteksi "<strong style="color:var(--d1)">${APP.cur.label}</strong>" dengan confidence ${Math.round(APP.cur.score*100)}%. Jika salah, tulis nama yang benar di bawah lalu ambil foto.`
+    : 'AI tidak mendeteksi objek apapun. Tulis nama objek yang ada di kamera, lalu ambil beberapa foto untuk melatihnya.';
+  document.getElementById('tp-sub-txt').innerHTML = subTxt;
+
+  // Refresh stats
+  await updateTeachStats();
+  updateTeachSaveBtn();
+
+  // Add suggestions for currently detected class if applicable
+  onTeachNameInput();
+}
+
+// ── Close teach panel ──
+function closeTeachPanel(){
+  const panel = document.getElementById('teach-panel');
+  panel.classList.remove('show');
+  stopTeachCam();
+  TEACH.samples = [];
+  TEACH.objName = '';
+  renderTeachStrip();
+}
+
+// ── Start webcam for teach panel ──
+async function startTeachCam(){
+  try{
+    if(TEACH.stream) stopTeachCam();
+    TEACH.stream = await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:'environment'},width:{ideal:640},height:{ideal:480}}
+    });
+    const v = document.getElementById('tp-video');
+    v.srcObject = TEACH.stream;
+    // Hide placeholder overlay
+    document.querySelector('.tp-live-overlay').style.display='none';
+  }catch(e){
+    console.warn('Teach cam error:', e.message);
+  }
+}
+
+function stopTeachCam(){
+  if(TEACH.stream){TEACH.stream.getTracks().forEach(t=>t.stop());TEACH.stream=null;}
+  clearInterval(TEACH.holdInterval);
+  document.querySelector('.tp-live-overlay').style.display='flex';
+}
+
+// ── Name input handler ──
+function onTeachNameInput(){
+  const val = document.getElementById('tp-obj-name').value.trim();
+  TEACH.objName = val;
+  updateTeachSaveBtn();
+  // Filter suggestions based on input
+  updateTeachStats();
+}
+
+function setTeachName(name){
+  document.getElementById('tp-obj-name').value = name;
+  TEACH.objName = name;
+  updateTeachSaveBtn();
+  updateTeachStats();
+  // Focus on capture button
+  document.getElementById('tp-cap-btn').focus();
+}
+
+// ── Capture one photo ──
+function teachCapture(){
+  const name = document.getElementById('tp-obj-name').value.trim();
+  if(!name){
+    // Shake input to indicate name required
+    const inp = document.getElementById('tp-obj-name');
+    inp.style.borderColor='var(--fire)';
+    inp.placeholder='← Tulis nama objek dulu!';
+    setTimeout(()=>{inp.style.borderColor='var(--rim)';inp.placeholder='Nama objek, cth: kipas angin'},2000);
+    return;
+  }
+  const v = document.getElementById('tp-video');
+  if(!v.srcObject){
+    toast('⚠️','Kamera belum aktif. Buka ulang panel Ajarkan AI.');
+    return;
+  }
+  const cv2 = document.createElement('canvas');
+  cv2.width=224;cv2.height=224;
+  cv2.getContext('2d').drawImage(v,0,0,224,224);
+  TEACH.samples.push({dataURL:cv2.toDataURL('image/jpeg',.85), canvas:cv2});
+  TEACH.objName = name;
+  renderTeachStrip();
+  updateTeachSaveBtn();
+
+  // Visual feedback
+  const lw = document.getElementById('tp-live-wrap');
+  lw.style.outline='3px solid var(--d1)';
+  setTimeout(()=>lw.style.outline='none',200);
+}
+
+// ── Burst capture ──
+function teachHoldStart(){
+  const btn = document.getElementById('tp-hold-btn');
+  btn.classList.add('active-hold');
+  TEACH.holdInterval = setInterval(teachCapture, 300);
+}
+function teachHoldEnd(){
+  clearInterval(TEACH.holdInterval);
+  document.getElementById('tp-hold-btn').classList.remove('active-hold');
+}
+
+// ── Gallery import ──
+function teachGallery(input){
+  const name = document.getElementById('tp-obj-name').value.trim();
+  if(!name){
+    toast('⚠️','Tulis nama objek dulu sebelum upload');
+    return;
+  }
+  let loaded = 0;
+  const files = Array.from(input.files);
+  if(!files.length) return;
+  files.forEach(f=>{
+    const reader = new FileReader();
+    reader.onload = e=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const cv2 = document.createElement('canvas');
+        cv2.width=224;cv2.height=224;
+        cv2.getContext('2d').drawImage(img,0,0,224,224);
+        TEACH.samples.push({dataURL:cv2.toDataURL('image/jpeg',.85),canvas:cv2});
+        loaded++;
+        if(loaded===files.length){
+          TEACH.objName = name;
+          renderTeachStrip();
+          updateTeachSaveBtn();
+          toast('🖼️',`${files.length} foto ditambahkan untuk "<strong>${name}</strong>"`);
+        }
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(f);
+  });
+  input.value='';
+}
+
+// ── Render sample strip ──
+function renderTeachStrip(){
+  const strip = document.getElementById('tp-cam-strip');
+  // Remove old thumbs (keep the live video wrapper)
+  strip.querySelectorAll('.tp-sample').forEach(el=>el.remove());
+  TEACH.samples.forEach((s,i)=>{
+    const wrap = document.createElement('div');
+    wrap.className='tp-sample';
+    wrap.innerHTML=`<img src="${s.dataURL}"><button class="tp-sample-del" onclick="teachRemoveSample(${i})">✕</button>`;
+    strip.appendChild(wrap);
+  });
+  // Update counter
+  document.getElementById('tp-cur-samples').textContent = TEACH.samples.length;
+}
+
+function teachRemoveSample(i){
+  TEACH.samples.splice(i,1);
+  renderTeachStrip();
+  updateTeachSaveBtn();
+}
+
+// ── Enable/disable save button ──
+function updateTeachSaveBtn(){
+  const btn = document.getElementById('tp-save-btn');
+  const ready = TEACH.objName.trim().length>0 && TEACH.samples.length>=3;
+  btn.style.opacity = ready?'1':'.4';
+  btn.style.pointerEvents = ready?'auto':'none';
+  if(TEACH.samples.length>0 && TEACH.samples.length<3){
+    btn.textContent = `💾 Perlu ${3-TEACH.samples.length} foto lagi`;
+  } else if(ready){
+    btn.textContent = `💾 Simpan ${TEACH.samples.length} foto ke Dataset`;
+  } else {
+    btn.textContent = '💾 Simpan ke Dataset';
+  }
+}
+
+// ── Save samples to IndexedDB ──
+async function saveTeachSamples(){
+  const name = TEACH.objName.trim();
+  if(!name||!TEACH.samples.length) return;
+
+  // Load existing record for this class (append, don't overwrite)
+  let existing = await dbTeachGet(name);
+  const existingSamples = existing ? existing.samples : [];
+  const newSamples = TEACH.samples.map(s=>s.dataURL);
+  const merged = [...existingSamples, ...newSamples];
+
+  const record = {
+    id: name,  // use name as key for easy lookup
+    name: name,
+    samples: merged,
+    count: merged.length,
+    updated: Date.now(),
+    date: new Date().toLocaleDateString('id-ID'),
+  };
+  await dbTeachPut(record);
+
+  toast('✅',`<strong>${name}</strong>: ${merged.length} foto tersimpan di dataset!`);
+
+  TEACH.samples = [];
+  renderTeachStrip();
+  updateTeachSaveBtn();
+  await updateTeachStats();
+  await refreshTeachTrigger();
+
+  // Also sync to training studio classes
+  syncTeachToTraining();
+}
+
+// ── Update stats display ──
+async function updateTeachStats(){
+  const all = await dbTeachAll();
+  const totalSamples = all.reduce((s,d)=>s+d.count,0);
+  document.getElementById('tp-total-classes').textContent = all.length;
+  document.getElementById('tp-total-samples').textContent = totalSamples;
+
+  // Current class count
+  const name = TEACH.objName.trim();
+  if(name){
+    const rec = all.find(d=>d.name===name);
+    const saved = rec?rec.count:0;
+    const inSession = TEACH.samples.length;
+    document.getElementById('tp-cur-samples').textContent = saved+inSession;
+  } else {
+    document.getElementById('tp-cur-samples').textContent = TEACH.samples.length;
+  }
+}
+
+// ── Go to training with existing data ──
+async function goToTrainWithData(){
+  await saveTeachSamples(); // save current session first
+  closeTeachPanel();
+  devTab(1); // switch to Training tab
+  await syncTeachToTraining();
+  toast('⚡','Dataset dimuat ke Training Studio. Tap "Mulai Training"!');
+}
+
+// ── SYNC: Load teach dataset → populate Training Studio classes ──
+async function syncTeachToTraining(){
+  const all = await dbTeachAll();
+  if(!all.length) return;
+
+  // Merge with existing training classes: update existing ones, add new ones
+  all.forEach(record=>{
+    const existing = APP.trainClasses.find(c=>c.name===record.name);
+    if(existing){
+      // Merge new samples
+      const existingURLs = new Set(existing.samples.map(s=>s.dataURL));
+      record.samples.forEach(dataURL=>{
+        if(!existingURLs.has(dataURL)){
+          existing.samples.push({dataURL});
+        }
+      });
+    } else {
+      // Add new class
+      const idx = APP.trainClasses.length;
+      APP.trainClasses.push({
+        name: record.name,
+        color: APP.classColors[idx%APP.classColors.length],
+        samples: record.samples.map(dataURL=>({dataURL})),
+      });
+    }
+  });
+
+  renderClasses();
+  checkTrainReady();
+  toast('🔄',`${all.length} kelas dari dataset dimuat ke Training Studio`);
+}
+
+// ══════════════════════════════════════════════
+//  PATCH: Add teach_samples store to IndexedDB
+// ══════════════════════════════════════════════
+// Override the initDB IIFE to add the new store
+// We do this by upgrading the DB version
+(function patchDB(){
+  // Bump DB version to add teach_samples store
+  const req = indexedDB.open('mata-v6', 3); // version 3
+  req.onupgradeneeded = e=>{
+    const d = e.target.result;
+    // Add existing stores if missing
+    if(!d.objectStoreNames.contains('models')){
+      const ms=d.createObjectStore('models',{keyPath:'id'});
+      ms.createIndex('score','score',{unique:false});
+    }
+    if(!d.objectStoreNames.contains('votes')){
+      const vs=d.createObjectStore('votes',{keyPath:'id',autoIncrement:true});
+      vs.createIndex('modelId','modelId',{unique:false});
+      vs.createIndex('cls','cls',{unique:false});
+    }
+    // NEW: teach_samples store
+    if(!d.objectStoreNames.contains('teach_samples')){
+      d.createObjectStore('teach_samples',{keyPath:'id'});
+    }
+  };
+  req.onsuccess = e=>{
+    db = e.target.result; // replace the global db reference
+    refreshTeachTrigger();
+    refreshModelDB();
+    populatePCVGrid();
+    populateSheetModelFilter();
+  };
+  req.onerror = ()=>{};
+})();
+
+
+// ═══════════════════════════════════════════════════
+//  EXPORT VOTES TO CSV
+// ═══════════════════════════════════════════════════
+async function exportVotesCSV(){
+  const votes = await dbAll('votes');
+  if(!votes.length){toast('⚠️','Belum ada data vote');return}
+  const header = 'Waktu,Model,Kelas,Label,Confidence,Akurat,Koreksi,Verdict_Kelas';
+  const rows = votes.map(v=>{
+    const t = new Date(v.ts).toLocaleString('id-ID');
+    return [t, v.modelId, v.cls, v.clsLabel||toID(v.cls),
+      Math.round(v.score*100)+'%',
+      v.correct?'Ya':'Tidak',
+      v.correction||'',
+      v.classVerdict||''
+    ].map(x=>`"${x}"`).join(',');
+  });
+  const csv = [header,...rows].join('\n');
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'MATA_votes_'+Date.now()+'.csv';
+  a.click();
+  toast('📥',`${votes.length} vote diekspor sebagai CSV!`);
+}
+
+
+// ═══════════════════════════════════════════════════
+//  SPREADSHEET DATABASE + CORRELATION ENGINE
+// ═══════════════════════════════════════════════════
+let sheetAllVotes = [];
+let sheetFiltered = [];
+let sheetCurrentPage = 0;
+const SHEET_PAGE_SIZE = 20;
+
+async function devTabSheet(){
+  await refreshSheet();
+  await buildCorrelationChart();
+  await buildClassAccTable();
+  await populateSheetModelFilter();
+}
+
+async function populateSheetModelFilter(){
+  const models = await dbAll('models');
+  const sel = document.getElementById('sf-model');
+  // Keep first option "Semua Model"
+  while(sel.options.length > 1) sel.remove(1);
+  models.forEach(m=>{
+    const opt = document.createElement('option');
+    opt.value = m.id; opt.textContent = m.name;
+    sel.appendChild(opt);
+  });
+  // Add COCO option
+  const cocoOpt = document.createElement('option');
+  cocoOpt.value = 'coco'; cocoOpt.textContent = 'COCO-SSD (Default)';
+  sel.insertBefore(cocoOpt, sel.options[1]);
+}
+
+async function refreshSheet(){
+  sheetAllVotes = await dbAll('votes');
+  const modelFilter = document.getElementById('sf-model')?.value || 'all';
+  const verdictFilter = document.getElementById('sf-verdict')?.value || 'all';
+
+  sheetFiltered = sheetAllVotes.filter(v=>{
+    if(modelFilter !== 'all' && v.modelId !== modelFilter) return false;
+    if(verdictFilter === 'correct' && !v.correct) return false;
+    if(verdictFilter === 'wrong' && v.correct) return false;
+    return true;
+  }).sort((a,b)=>b.ts-a.ts); // newest first
+
+  sheetCurrentPage = 0;
+  renderSheetRows();
+  updateSheetSummary();
+}
+
+function renderSheetRows(){
+  const rows = document.getElementById('sheet-rows');
+  const total = sheetFiltered.length;
+  const start = sheetCurrentPage * SHEET_PAGE_SIZE;
+  const end = Math.min(start + SHEET_PAGE_SIZE, total);
+  const page = sheetFiltered.slice(start, end);
+
+  if(!total){
+    rows.innerHTML = '<div style="text-align:center;padding:20px;color:var(--dim);font-size:12px;font-family:\'Syne Mono\',monospace">Belum ada data.</div>';
+    document.getElementById('sheet-page-info').textContent = '0 / 0';
+    return;
+  }
+
+  rows.innerHTML = page.map((v, i) => {
+    const idx = start + i + 1;
+    const t = new Date(v.ts).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+    const conf = Math.round(v.score*100);
+    const confColor = conf>=80?'var(--lime)':conf>=65?'var(--gold)':'var(--fire)';
+    const voteColor = v.correct?'var(--lime)':'var(--fire)';
+    const corrLabel = v.correction ? toID(v.correction) : '—';
+    const rowBg = v.correct ? '' : 'background:rgba(255,77,109,.03)';
+    return `<div style="display:grid;grid-template-columns:40px 1fr 80px 60px 55px 65px;gap:0;padding:8px 10px;border-bottom:1px solid var(--rim);${rowBg};align-items:center">
+      <div style="font-family:'Syne Mono',monospace;font-size:9px;color:var(--dim)">${idx}</div>
+      <div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${toEmoji(v.cls)} ${toID(v.cls)}</div>
+      <div style="font-family:'Syne Mono',monospace;font-size:10px;color:${confColor}">${conf}%</div>
+      <div style="font-size:14px;text-align:center">${v.correct?'✅':'❌'}</div>
+      <div style="font-size:10px;color:var(--gold);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${corrLabel}</div>
+      <div style="font-family:'Syne Mono',monospace;font-size:9px;color:var(--dim)">${t}</div>
+    </div>`;
+  }).join('');
+
+  const totalPages = Math.ceil(total / SHEET_PAGE_SIZE);
+  document.getElementById('sheet-page-info').textContent = `${sheetCurrentPage+1} / ${totalPages}`;
+  document.getElementById('sheet-prev').style.opacity = sheetCurrentPage===0?'.3':'1';
+  document.getElementById('sheet-next').style.opacity = sheetCurrentPage>=totalPages-1?'.3':'1';
+}
+
+function sheetPage(dir){
+  const total = sheetFiltered.length;
+  const totalPages = Math.ceil(total / SHEET_PAGE_SIZE);
+  sheetCurrentPage = Math.max(0, Math.min(sheetCurrentPage + dir, totalPages-1));
+  renderSheetRows();
+}
+
+async function updateSheetSummary(){
+  const all = sheetAllVotes;
+  const total = all.length;
+  const yes = all.filter(v=>v.correct).length;
+  const acc = total>0 ? Math.round(yes/total*100) : null;
+
+  document.getElementById('ss-total').textContent = total;
+  document.getElementById('ss-acc').textContent = acc !== null ? acc+'%' : '—';
+  document.getElementById('ss-acc').style.color = !acc?'var(--dim)':acc>=80?'var(--lime)':acc>=65?'var(--gold)':'var(--fire)';
+
+  // Count unique models
+  const modelIds = new Set(all.map(v=>v.modelId));
+  document.getElementById('ss-models').textContent = modelIds.size;
+
+  // Find weakest class
+  const perCls = {};
+  for(const v of all){
+    if(!perCls[v.cls])perCls[v.cls]={y:0,t:0};
+    perCls[v.cls].t++;
+    if(v.correct)perCls[v.cls].y++;
+  }
+  const clsArr = Object.entries(perCls).filter(([,d])=>d.t>=2);
+  if(clsArr.length){
+    clsArr.sort((a,b)=>a[1].y/a[1].t - b[1].y/b[1].t);
+    const worst = clsArr[0];
+    document.getElementById('ss-weak').textContent = toEmoji(worst[0])+' '+toID(worst[0]);
+  }
+}
+
+// ── CORRELATION CHART: Vote patterns → AI accuracy per class
+async function buildCorrelationChart(){
+  const all = await dbAll('votes');
+  if(!all.length){
+    document.getElementById('correlation-chart').innerHTML =
+      '<div style="font-size:11px;color:var(--dim);text-align:center;padding:8px">Vote lebih banyak diperlukan untuk korelasi</div>';
+    return;
+  }
+
+  const perCls = {};
+  for(const v of all){
+    if(!perCls[v.cls])perCls[v.cls]={y:0,t:0,confidences:[],corrections:{}};
+    perCls[v.cls].t++;
+    if(v.correct){perCls[v.cls].y++;perCls[v.cls].confidences.push(v.score)}
+    if(v.correction){
+      perCls[v.cls].corrections[v.correction] = (perCls[v.cls].corrections[v.correction]||0)+1;
+    }
+  }
+
+  const rows = Object.entries(perCls)
+    .filter(([,d])=>d.t>=1)
+    .sort((a,b)=>a[1].y/a[1].t - b[1].y/b[1].t)
+    .slice(0,8);
+
+  if(!rows.length){
+    document.getElementById('correlation-chart').innerHTML =
+      '<div style="font-size:11px;color:var(--dim);text-align:center">Belum cukup data</div>';
+    return;
+  }
+
+  // Draw horizontal bar chart
+  const chartHTML = rows.map(([cls,d])=>{
+    const acc = Math.round(d.y/d.t*100);
+    const avgConf = d.confidences.length
+      ? Math.round(d.confidences.reduce((a,b)=>a+b,0)/d.confidences.length*100) : 0;
+    const col = acc>=80?'var(--lime)':acc>=60?'var(--gold)':'var(--fire)';
+
+    // Find top confusion (what AI mistakes this for)
+    const topCorr = Object.entries(d.corrections).sort((a,b)=>b[1]-a[1])[0];
+
+    // Correlation insight
+    let insight = '';
+    if(acc < 60 && topCorr){
+      insight = `<span style="color:var(--gold);font-size:9px">→ dikira ${toID(topCorr[0])}</span>`;
+    } else if(acc >= 90){
+      insight = `<span style="color:var(--lime);font-size:9px">✓ akurat</span>`;
+    } else if(avgConf > 0 && acc < avgConf - 15){
+      insight = `<span style="color:var(--fire);font-size:9px">⚠ overconfident</span>`;
+    }
+
+    return `<div style="margin-bottom:7px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+        <span style="font-size:13px;flex-shrink:0">${toEmoji(cls)}</span>
+        <span style="font-size:11px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${toID(cls)}</span>
+        <span style="font-family:'Syne Mono',monospace;font-size:10px;color:${col};flex-shrink:0">${acc}%</span>
+        ${insight}
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="flex:1;height:6px;background:var(--s3);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${acc}%;background:${col};border-radius:3px;transition:width .8s cubic-bezier(.4,0,.2,1)"></div>
+        </div>
+        <span style="font-family:'Syne Mono',monospace;font-size:9px;color:var(--dim);flex-shrink:0">${d.t}v</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('correlation-chart').innerHTML =
+    '<div style="margin-top:4px">'+chartHTML+'</div>';
+}
+
+// ── CLASS ACCURACY TABLE
+async function buildClassAccTable(){
+  const all = await dbAll('votes');
+  if(!all.length){
+    document.getElementById('class-acc-table').innerHTML =
+      '<div style="text-align:center;padding:16px;color:var(--dim);font-size:12px;font-family:\'Syne Mono\',monospace">Belum ada data</div>';
+    return;
+  }
+
+  const perCls = {};
+  for(const v of all){
+    if(!perCls[v.cls])perCls[v.cls]={y:0,n:0};
+    v.correct ? perCls[v.cls].y++ : perCls[v.cls].n++;
+  }
+
+  const rows = Object.entries(perCls)
+    .sort((a,b)=> b[1].y/(b[1].y+b[1].n) - a[1].y/(a[1].y+a[1].n));
+
+  document.getElementById('class-acc-table').innerHTML = rows.map(([cls,d])=>{
+    const total = d.y + d.n;
+    const acc = Math.round(d.y/total*100);
+    const col = acc>=80?'var(--lime)':acc>=60?'var(--gold)':'var(--fire)';
+    const rowBg = acc<60 ? 'background:rgba(255,77,109,.03)' : acc>=80 ? 'background:rgba(124,255,107,.02)' : '';
+    return `<div style="display:grid;grid-template-columns:1fr 50px 50px 50px 60px;gap:0;padding:8px 12px;border-bottom:1px solid var(--rim);${rowBg};align-items:center">
+      <div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${toEmoji(cls)} ${toID(cls)}</div>
+      <div style="font-family:'Syne Mono',monospace;font-size:11px;color:var(--lime);text-align:center">${d.y}</div>
+      <div style="font-family:'Syne Mono',monospace;font-size:11px;color:var(--fire);text-align:center">${d.n}</div>
+      <div style="font-family:'Syne Mono',monospace;font-size:11px;color:var(--dim);text-align:center">${total}</div>
+      <div style="font-family:'Syne Mono',monospace;font-size:11px;font-weight:700;color:${col};text-align:right">${acc}%</div>
+    </div>`;
+  }).join('');
+}
+
+// ── EXPORT / IMPORT
+async function exportVotesCSV(){
+  const votes = await dbAll('votes');
+  if(!votes.length){toast('⚠️','Belum ada data vote');return}
+  const header = ['No','Waktu','Tanggal','Model_ID','Kelas','Label_ID','Confidence_%','Akurat','Koreksi','Verdict_Kelas','Timestamp'].join(',');
+  const rows = votes.map((v,i)=>{
+    const t = new Date(v.ts).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    return [
+      i+1,
+      `"${t}"`,
+      `"${v.date||''}"`,
+      `"${v.modelId||''}"`,
+      `"${v.cls||''}"`,
+      `"${v.clsLabel||toID(v.cls)}"`,
+      Math.round(v.score*100),
+      v.correct?'Ya':'Tidak',
+      `"${v.correction||''}"`,
+      `"${v.classVerdict||''}"`,
+      v.ts
+    ].join(',');
+  });
+  const bom = '﻿'; // BOM for Excel UTF-8
+  const csv = bom + [header,...rows].join('\n');
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'MATA_evaluasi_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+  toast('📥',`${votes.length} record diekspor sebagai CSV!`);
+}
+
+async function exportVotesJSON(){
+  const votes = await dbAll('votes');
+  const models = await dbAll('models');
+  const payload = {
+    exported: new Date().toISOString(),
+    app: 'MATA v1.0',
+    stats: {
+      totalVotes: votes.length,
+      totalModels: models.length,
+      accuracy: votes.length>0 ? Math.round(votes.filter(v=>v.correct).length/votes.length*100) : null
+    },
+    votes,
+    models
+  };
+  const blob = new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'MATA_database_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  toast('📋','Database diekspor sebagai JSON!');
+}
+
+function importVotesJSON(){document.getElementById('import-json-input').click()}
+
+async function doImportJSON(input){
+  const file = input.files[0];
+  if(!file) return;
+  try{
+    const text = await file.text();
+    const data = JSON.parse(text);
+    const votes = data.votes || [];
+    const models = data.models || [];
+    let vCount=0, mCount=0;
+    for(const v of votes){await dbPut('votes',v);vCount++}
+    for(const m of models){await dbPut('models',m);mCount++}
+    toast('📤',`Import: ${vCount} vote, ${mCount} model`);
+    await refreshSheet();
+    await buildCorrelationChart();
+    await buildClassAccTable();
+    refreshModelDB();
+  }catch(e){toast('❌','Import gagal: '+e.message)}
+  input.value = '';
+}
+
+
+// ═══════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════
+let toastTid=null;
+function toast(icon,html){
+  document.getElementById('ti').textContent=icon;
+  document.getElementById('tm').innerHTML=html;
+  const t=document.getElementById('toast');t.classList.add('on');
+  clearTimeout(toastTid);toastTid=setTimeout(()=>t.classList.remove('on'),3200);
+}
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+window.addEventListener('load',()=>{
+  // Init training studio with 2 default classes
+  addClass();addClass();
+  APP.trainClasses[0].name='Kelas 1';APP.trainClasses[1].name='Kelas 2';
+  renderClasses();
+  populatePCVGrid();
+  // Pre-warm sheet data and teach data
+  setTimeout(async ()=>{
+    await populateSheetModelFilter();
+    await refreshTrainDatasetInfo();
+  },1500);
+  // Minimal touchmove handler - only block rubber-band on camera screens
+  document.addEventListener('touchmove', function(e){
+    // Only prevent default on the actual camera canvas elements
+    if(e.target.id === 'u-canvas' || e.target.id === 'd-canvas' ||
+       e.target.id === 'u-video'  || e.target.id === 'd-video'){
+      e.preventDefault();
+    }
+    // Everything else: let browser handle naturally (scroll, tap, etc.)
+  }, {passive: false});
+});
+</script>
+</body>
+</html>
